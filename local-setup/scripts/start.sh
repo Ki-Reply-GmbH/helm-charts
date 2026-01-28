@@ -201,9 +201,12 @@ $SCRIPT_DIR/createKcpAdminKubeconfig.sh
 
 if [ "$EXAMPLE_DATA" = true ]; then
   export KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig
-  kubectl create-workspace providers --type=root:providers --ignore-existing --server="https://localhost:8443/clusters/root"
-  kubectl create-workspace httpbin-provider --type=root:provider --ignore-existing --server="https://localhost:8443/clusters/root:providers"
-  kubectl apply -k $SCRIPT_DIR/../example-data/root/providers/httpbin-provider --server="https://localhost:8443/clusters/root:providers:httpbin-provider"
+  kubectl create-workspace providers --type=root:providers --ignore-existing --server="https://kcp.api.portal.dev.local:8443/clusters/root"
+  kubectl create-workspace httpbin-provider --type=root:provider --ignore-existing --server="https://kcp.api.portal.dev.local:8443/clusters/root:providers"
+  kubectl apply -k $SCRIPT_DIR/../example-data/root/providers/httpbin-provider --server="https://kcp.api.portal.dev.local:8443/clusters/root:providers:httpbin-provider"
+
+  kubectl create-workspace openbao-provider --type=root:provider --ignore-existing --server="https://kcp.api.portal.dev.local:8443/clusters/root:providers"
+  kubectl apply -k $SCRIPT_DIR/../example-data/root/providers/openbao-provider --server="https://kcp.api.portal.dev.local:8443/clusters/root:providers:openbao-provider"
   unset KUBECONFIG
 
   echo -e "${COL}[$(date '+%H:%M:%S')] Waiting for example provider ${COL_RES}"
@@ -216,6 +219,9 @@ if [ "$EXAMPLE_DATA" = true ]; then
     --for=condition=Ready helmreleases \
     --timeout=$KUBECTL_WAIT_TIMEOUT example-httpbin-provider
 
+  kubectl wait --namespace default \
+    --for=condition=Ready helmreleases \
+    --timeout=$KUBECTL_WAIT_TIMEOUT example-openbao-provider
 fi
 
 echo -e "${YELLOW}⚠️  NOTE: Organization subdomains like <organization-name>.portal.localhost are resolved automatically by modern browsers.${COL_RES}"
