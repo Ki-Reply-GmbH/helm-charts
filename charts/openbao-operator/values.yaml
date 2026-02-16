@@ -1,0 +1,12 @@
+nameOverride: ""
+fullnameOverride: ""
+
+# [API-SYNCAGENT]: kcp api-syncagent integration
+apiSyncagent:
+  rbac:
+    enable: false
+  publishedResources:
+    enable: false
+  serviceAccount:
+    name: api-syncagent
+    namespace: openbao-provider

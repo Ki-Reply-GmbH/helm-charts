@@ -182,9 +182,12 @@ if [ "$EXAMPLE_DATA" = true ]; then
   kubectl create-workspace providers --type=root:providers --ignore-existing --server="https://kcp.api.portal.dev.local:8443/clusters/root"
   kubectl create-workspace httpbin-provider --type=root:provider --ignore-existing --server="https://kcp.api.portal.dev.local:8443/clusters/root:providers"
   kubectl apply -k $SCRIPT_DIR/../example-data/root/providers/httpbin-provider --server="https://kcp.api.portal.dev.local:8443/clusters/root:providers:httpbin-provider"
+
+  kubectl create-workspace openbao-provider --type=root:provider --ignore-existing --server="https://kcp.api.portal.dev.local:8443/clusters/root:providers"
+  kubectl apply -k $SCRIPT_DIR/../example-data/root/providers/openbao-provider --server="https://kcp.api.portal.dev.local:8443/clusters/root:providers:openbao-provider"
   unset KUBECONFIG
 
-  echo -e "${COL}[$(date '+%H:%M:%S')] Waiting for example provider ${COL_RES}"
+  echo -e "${COL}[$(date '+%H:%M:%S')] Waiting for example providers ${COL_RES}"
 
   kubectl wait --namespace default \
     --for=condition=Ready helmreleases \
@@ -193,6 +196,13 @@ if [ "$EXAMPLE_DATA" = true ]; then
   kubectl wait --namespace default \
     --for=condition=Ready helmreleases \
     --timeout=280s example-httpbin-provider
+
+  kubectl wait --namespace default \
+    --for=condition=Ready helmreleases \
+    --timeout=280s openbao-api-syncagent
+
+  echo -e "${COL}[$(date '+%H:%M:%S')] Applying openbao PublishedResource (requires api-syncagent CRD) ${COL_RES}"
+  kubectl apply -f $SCRIPT_DIR/../kustomize/components/openbao-provider/published-resource.yaml
 
 fi
 

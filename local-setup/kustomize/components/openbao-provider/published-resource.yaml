@@ -1,0 +1,12 @@
+apiVersion: syncagent.kcp.io/v1alpha1
+kind: PublishedResource
+metadata:
+  name: openbaotenant-provider
+  namespace: openbao-provider
+spec:
+  resource:
+    kind: OpenBaoTenant
+    apiGroup: openbao.apeiro.dev
+    version: v1
+  naming:
+    name: "{{ .ClusterName }}-{{ .Object.metadata.name | sha3short }}"

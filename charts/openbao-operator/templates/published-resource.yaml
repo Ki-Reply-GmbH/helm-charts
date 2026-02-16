@@ -1,0 +1,13 @@
+{{- if .Values.apiSyncagent.publishedResources.enable }}
+apiVersion: syncagent.kcp.io/v1alpha1
+kind: PublishedResource
+metadata:
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+  name: openbaotenant-provider
+spec:
+  resource:
+    kind: OpenBaoTenant
+    apiGroup: openbao.apeiro.dev
+    version: v1
+{{- end }}
