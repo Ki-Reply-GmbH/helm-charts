@@ -1,0 +1,24 @@
+{{- if .Values.apiSyncagent.publishedResources.enable }}
+apiVersion: syncagent.kcp.io/v1alpha1
+kind: PublishedResource
+metadata:
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+    syncagent.kcp.io/agent: {{ .Values.apiSyncagent.serviceAccount.name | default "openbao-api-syncagent" }}
+  name: openbaotenant-provider
+spec:
+  resource:
+    kind: OpenBaoTenant
+    apiGroup: openbao.apeiro.dev
+    version: v1
+  related:
+    - identifier: approle-secret
+      kind: Secret
+      origin: service
+      object:
+        namespace:
+          reference:
+            path: spec.auth.appRole.secretRef.namespace
+        reference:
+          path: spec.auth.appRole.secretRef.name
+{{- end }}

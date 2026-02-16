@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ../../components/platform-mesh-operator-resource
   - ../../components/example-httpbin-provider
+  - ../../components/openbao-provider
 
 patches:
   - target:
@@ -23,6 +24,11 @@ patches:
               path: root:providers:httpbin-provider
               secret: httpbin-kubeconfig
               namespace: example-httpbin-provider
+              external: false
+            - endpointSliceName: ""
+              path: root:providers:openbao-provider
+              secret: openbao-kubeconfig
+              namespace: openbao-provider
               external: false
           extraDefaultAPIBindings:
             - workspaceTypePath: root:account

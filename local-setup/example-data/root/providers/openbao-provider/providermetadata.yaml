@@ -1,0 +1,8 @@
+apiVersion: ui.platform-mesh.io/v1alpha1
+kind: ProviderMetadata
+metadata:
+  name: openbao.apeiro.dev
+spec:
+  displayName: OpenBao Provider
+  description: |
+    OpenBao secrets management provider for tenant secret engines.
