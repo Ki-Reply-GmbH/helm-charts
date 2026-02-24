@@ -11,10 +11,10 @@
   - [1. Prerequisites](#1-prerequisites)
     - [Install the KCP kubectl Plugin](#install-the-kcp-kubectl-plugin)
     - [Configure /etc/hosts](#configure-etchosts)
-  - [2. Terminal Setup](#2-terminal-setup)
-    - [Terminal 1 — Local Cluster (physical Kind cluster)](#terminal-1--local-cluster-physical-kind-cluster)
+  - [2. Install the Local Platform Mesh](#2-install-the-local-platform-mesh)
+  - [3. Terminal Setup](#3-terminal-setup)
+    - [Terminal 1 No KCP — Local Cluster (physical Kind cluster)](#terminal-1-no-kcp--local-cluster-physical-kind-cluster)
     - [Terminal 2 — KCP (virtual control plane)](#terminal-2--kcp-virtual-control-plane)
-  - [3. Install the Local Platform Mesh](#3-install-the-local-platform-mesh)
   - [4. Install OpenBao in the Service Cluster](#4-install-openbao-in-the-service-cluster)
   - [5. Initialize and Unseal OpenBao](#5-initialize-and-unseal-openbao)
     - [Initialize](#initialize)
@@ -28,7 +28,7 @@
   - [9. Create an Organization and Account via the Portal](#9-create-an-organization-and-account-via-the-portal)
     - [Create an Organization](#create-an-organization)
     - [Create an Account](#create-an-account)
-    - [Verify (Terminal 2)](#verify-terminal-2)
+    - [Verify (Terminal 2 KCP)](#verify-terminal-2-kcp)
   - [10. Create the APIBinding for an Organization](#10-create-the-apibinding-for-an-organization)
     - [Verify](#verify-2)
   - [11. Create the APIBinding for an Account](#11-create-the-apibinding-for-an-account)
@@ -67,6 +67,7 @@ Before starting, ensure you have the following installed:
 - **Go** (for compiling the operator)
 - **OpenBao CLI** (`bao`) — [install instructions](https://openbao.org/docs/install)
 - **jq** (for JSON parsing)
+- **krew** - [install instructions](https://krew.sigs.k8s.io/)
 
 ### Install the KCP kubectl Plugin
 
@@ -97,41 +98,9 @@ sudo sh -c 'echo "127.0.0.1 portal.dev.local default.portal.dev.local kcp.api.po
 
 ---
 
-## 2. Terminal Setup
+## 2. Install the Local Platform Mesh
 
-Throughout this guide you will work with **two terminal windows** simultaneously. Set them up now and keep them open for the entire process.
-
-### Terminal 1 — Local Cluster (physical Kind cluster)
-
-This terminal is for interacting with the actual Kubernetes cluster where OpenBao and the operator run.
-
-```bash
-# Use the default Kind kubeconfig
-kubectl config use-context kind-platform-mesh
-
-# Verify
-kubectl get nodes
-```
-
-### Terminal 2 — KCP (virtual control plane)
-
-This terminal is for interacting with KCP workspaces where organizations, accounts, APIBindings, and tenants live.
-
-```bash
-# Set the KCP kubeconfig (from the helm-charts repo root)
-export KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig
-
-# Verify
-kubectl ws tree
-```
-
-> **Important:** Never mix these up. If a command interacts with pods, deployments, or Helm — use **Terminal 1**. If it interacts with workspaces, APIBindings, or tenants — use **Terminal 2**.
-
----
-
-## 3. Install the Local Platform Mesh
-
-**Terminal 1** — From the root of the `helm-charts` repository:
+**Terminal 1 No KCP** — From the root of the `helm-charts` repository:
 
 ```bash
 task local-setup:example-data
@@ -156,7 +125,7 @@ kubectl get pods -n platform-mesh-system
 curl -k https://portal.dev.local:8443
 ```
 
-**Terminal 2** — Verify KCP is accessible:
+**Terminal 2 KCP** — Verify KCP is accessible:
 
 ```bash
 export KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig
@@ -167,9 +136,41 @@ You should see the workspace hierarchy including `root:providers:httpbin-provide
 
 ---
 
+## 3. Terminal Setup
+
+Throughout this guide you will work with **two terminal windows** simultaneously. Set them up now and keep them open for the entire process.
+
+### Terminal 1 No KCP — Local Cluster (physical Kind cluster)
+
+This terminal is for interacting with the actual Kubernetes cluster where OpenBao and the operator run.
+
+```bash
+# Use the default Kind kubeconfig
+kubectl config use-context kind-platform-mesh
+
+# Verify
+kubectl get nodes
+```
+
+### Terminal 2 — KCP (virtual control plane)
+
+This terminal is for interacting with KCP workspaces where organizations, accounts, APIBindings, and tenants live.
+
+```bash
+# Set the KCP kubeconfig (from the helm-charts repo root)
+export KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig
+
+# Verify
+kubectl ws tree
+```
+
+> **Important:** Never mix these up. If a command interacts with pods, deployments, or Helm — use **Terminal 1 No KCP**. If it interacts with workspaces, APIBindings, or tenants — use **Terminal 2 KCP**.
+
+---
+
 ## 4. Install OpenBao in the Service Cluster
 
-**Terminal 1:**
+**Terminal 1 No KCP:**
 
 ```bash
 # Add the OpenBao Helm repo
@@ -194,7 +195,7 @@ openbao-0   0/1     Running   0          30s
 
 ## 5. Initialize and Unseal OpenBao
 
-**Terminal 1:**
+**Terminal 1 No KCP:**
 
 ### Initialize
 
@@ -234,7 +235,7 @@ openbao-0   1/1     Running   0          2m
 
 ## 6. Build and Load the OpenBao Operator Image
 
-**Terminal 1** — From the root of the **openbao-operator** source repository:
+**Terminal 1 No KCP** — From the root of the **openbao-operator** source repository:
 
 ```bash
 # Build the container image
@@ -251,7 +252,7 @@ kind load image-archive /tmp/openbao-operator.tar --name platform-mesh
 
 ## 7. Deploy the OpenBao Operator
 
-**Terminal 1** — Still from the openbao-operator repository:
+**Terminal 1 No KCP** — Still from the openbao-operator repository:
 
 ```bash
 # Install the CRDs (OpenBaoTenant etc.)
@@ -282,7 +283,7 @@ openbao-operator-controller-manager-xxxxx-yyyyy            1/1     Running   0  
 
 ## 8. Configure the Operator with the OpenBao Root Token
 
-**Terminal 1:**
+**Terminal 1 No KCP:**
 
 The operator needs to know the OpenBao address and authentication token. Patch the deployment to inject these as CLI arguments:
 
@@ -330,7 +331,7 @@ This creates a KCP workspace at `root:orgs:test`.
 
 This creates a nested KCP workspace at `root:orgs:test:test-acc`.
 
-### Verify (Terminal 2)
+### Verify (Terminal 2 KCP)
 
 ```bash
 kubectl ws tree
@@ -344,7 +345,7 @@ You should see `root:orgs:test` and `root:orgs:test:test-acc` in the workspace t
 
 The APIBinding connects the consumer workspace to the OpenBao provider, making the `OpenBaoTenant` CRD available in that workspace.
 
-**Terminal 2:**
+**Terminal 2 KCP:**
 
 ```bash
 # Switch to the organization workspace
@@ -395,7 +396,7 @@ The `openbao-binding` should show `READY: True`.
 
 ## 11. Create the APIBinding for an Account
 
-**Terminal 2:**
+**Terminal 2 KCP:**
 
 ```bash
 # Switch to the account workspace
@@ -446,7 +447,7 @@ kubectl get apibindings
 
 With the APIBinding in place, the `OpenBaoTenant` CRD is now available in the organization workspace.
 
-**Terminal 2:**
+**Terminal 2 KCP:**
 
 ```bash
 # Make sure you're in the org workspace
@@ -485,7 +486,7 @@ The OpenBao operator (via the API Sync Agent) will:
 
 ## 13. Create an OpenBaoTenant (Account Level)
 
-**Terminal 2:**
+**Terminal 2 KCP:**
 
 ```bash
 # Switch to the account workspace
@@ -519,7 +520,7 @@ EOF
 
 After the operator processes the `OpenBaoTenant`, it creates a Kubernetes Secret containing the AppRole credentials.
 
-**Terminal 2:**
+**Terminal 2 KCP:**
 
 ### For the Organization
 
@@ -555,7 +556,7 @@ The secret should contain `role-id` and `secret-id` keys.
 
 ### Port-Forward OpenBao
 
-**Terminal 1:**
+**Terminal 1 No KCP:**
 
 ```bash
 kubectl port-forward openbao-0 8200:8200 -n openbao
@@ -565,7 +566,7 @@ Leave this running.
 
 ### Get a Token from OpenBao
 
-**Terminal 2:**
+**Terminal 2 KCP:**
 
 Make sure you set the `BAO_ADDR` environment variable:
 
@@ -608,9 +609,10 @@ token_policies          ["default", "my-awesome-account-policy"]
 ### Login via the OpenBao UI
 
 1. Open **http://localhost:8200/ui** in your browser
-2. Select the **Token** authentication method
-3. Paste the `token` value from the previous step
-4. Click **Sign In**
+2. Set the correct namespace in the ui
+3. Select the **Token** authentication method
+4. Paste the `token` value from the previous step
+5. Click **Sign In**
 
 You should now be logged in with the tenant's scoped permissions, restricted to the tenant's namespace in OpenBao.
 
@@ -620,7 +622,7 @@ You should now be logged in with the tenant's scoped permissions, restricted to 
 
 ### OpenBao pod stuck at 0/1 READY
 
-**Terminal 1** — The pod needs to be unsealed after every restart:
+**Terminal 1 No KCP** — The pod needs to be unsealed after every restart:
 
 ```bash
 kubectl exec -n openbao openbao-0 -- bao operator unseal <UNSEAL_KEY>
@@ -628,7 +630,7 @@ kubectl exec -n openbao openbao-0 -- bao operator unseal <UNSEAL_KEY>
 
 ### Operator pod is in ImagePullBackOff
 
-**Terminal 1:**
+**Terminal 1 No KCP:**
 
 ```bash
 kind load image-archive /tmp/openbao-operator.tar --name platform-mesh
@@ -639,7 +641,7 @@ kubectl patch deployment -n openbao-operator-system openbao-operator-controller-
 
 ### APIBinding not becoming READY
 
-**Terminal 2:**
+**Terminal 2 KCP:**
 
 ```bash
 kubectl ws root:providers:openbao-provider
@@ -647,7 +649,7 @@ kubectl get apiexports
 kubectl get apiexport openbao.apeiro.dev -o yaml
 ```
 
-If the `latestResourceSchemas` field is empty, the sync agent hasn't populated it yet. Check the sync agent logs in **Terminal 1**:
+If the `latestResourceSchemas` field is empty, the sync agent hasn't populated it yet. Check the sync agent logs in **Terminal 1 No KCP**:
 
 ```bash
 kubectl logs -n openbao-provider -l app=api-syncagent --tail=100
@@ -655,7 +657,7 @@ kubectl logs -n openbao-provider -l app=api-syncagent --tail=100
 
 ### OpenBaoTenant not being processed
 
-**Terminal 1** — Check the operator logs:
+**Terminal 1 No KCP** — Check the operator logs:
 
 ```bash
 kubectl logs -n openbao-operator-system -l control-plane=controller-manager --tail=100
@@ -669,7 +671,7 @@ kubectl get openbaotenants -A
 
 ### Portal not reachable
 
-**Terminal 1:**
+**Terminal 1 No KCP:**
 
 ```bash
 grep portal /etc/hosts
@@ -681,7 +683,7 @@ The portal should be accessible at `https://portal.dev.local:8443`.
 
 ### KCP workspace commands not working
 
-**Terminal 2** — Ensure the kubeconfig is set:
+**Terminal 2 KCP** — Ensure the kubeconfig is set:
 
 ```bash
 export KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig
