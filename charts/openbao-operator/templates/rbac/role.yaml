@@ -1,0 +1,54 @@
+{{- if .Values.rbac.enable }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "openbao-operator.fullname" . }}-manager-role
+  labels:
+    {{- include "openbao-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openbao.apeiro.dev
+  resources:
+  - openbaotenants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openbao.apeiro.dev
+  resources:
+  - openbaotenants/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - openbao.apeiro.dev
+  resources:
+  - openbaotenants/status
+  verbs:
+  - get
+  - patch
+  - update
+{{- end }}

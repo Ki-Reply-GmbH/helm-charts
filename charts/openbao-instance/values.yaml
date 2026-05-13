@@ -1,0 +1,85 @@
+# Default values for openbao-instance
+# This deploys OpenBao in dev mode for local development
+
+replicaCount: 1
+
+image:
+  registry: docker.io
+  repository: openbao/openbao
+  tag: "2.1.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# OpenBao server configuration
+config:
+  # Dev mode: auto-unsealed, in-memory storage
+  # WARNING: Data is lost on pod restart. Not for production!
+  devMode: true
+  devRootToken: "root"
+  devListenAddress: "0.0.0.0:8200"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8200
+  annotations: {}
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Init job - configures Kubernetes authentication after OpenBao starts
+initJob:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: openbao/openbao
+    tag: "2.1.0"
+  backoffLimit: 5
+  restartPolicy: Never
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  # OpenBao configuration
+  openbaoAddress: "http://openbao:8200"
+  rootToken: "root"
+  # Operator ServiceAccount configuration
+  operatorServiceAccount: "openbao-operator-controller-manager"
+  operatorNamespace: "openbao-provider"
+  operatorRole: "openbao-operator"
+  operatorPolicyName: "openbao-operator"
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: false  # Dev mode requires root
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  capabilities:
+    add:
+      - IPC_LOCK  # Required for OpenBao memory locking
+  runAsNonRoot: false
+  runAsUser: 0
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""

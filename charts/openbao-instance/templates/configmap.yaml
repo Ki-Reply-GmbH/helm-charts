@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openbao-instance.fullname" . }}-config
+  labels:
+    {{- include "openbao-instance.labels" . | nindent 4 }}
+data:
+  config.hcl: |
+    # OpenBao dev mode configuration
+    # This is for local development only - not for production!
+
+    {{- if .Values.config.devMode }}
+    # Dev mode is enabled via command line flag
+    # Configuration here is minimal since dev mode handles most setup
+    {{- else }}
+    ui = true
+
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      tls_disable = true
+    }
+
+    storage "inmem" {}
+    {{- end }}

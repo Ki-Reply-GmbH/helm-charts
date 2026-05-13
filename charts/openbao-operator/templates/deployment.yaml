@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openbao-operator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "openbao-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "openbao-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "openbao-operator.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "openbao-operator.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - name: manager
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+        {{- if .Values.leaderElection.enabled }}
+        - --leader-elect
+        {{- end }}
+        - --health-probe-bind-address={{ .Values.healthProbe.bindAddress }}
+        - --openbao-address={{ .Values.operator.openbaoAddress }}
+        - --openbao-auth-method={{ .Values.operator.openbaoAuthMethod }}
+        - --openbao-k8s-role={{ .Values.operator.openbaoK8sRole }}
+        - --openbao-k8s-mount-path={{ .Values.operator.openbaoK8sMountPath }}
+        - --openbao-k8s-token-path={{ .Values.operator.openbaoK8sTokenPath }}
+        - --admin-policy-privileges={{ .Values.operator.adminPolicyPrivileges }}
+        - --apiexport-endpointslice-name={{ .Values.operator.apiexportEndpointsliceName }}
+        {{- if .Values.metrics.enable }}
+        - --metrics-bind-address=:8443
+        - --metrics-secure=true
+        {{- else }}
+        - --metrics-bind-address=0
+        {{- end }}
+        ports:
+        {{- if .Values.metrics.enable }}
+        - containerPort: 8443
+          name: metrics
+          protocol: TCP
+        {{- end }}
+        - containerPort: 8081
+          name: health
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.operator.resources | nindent 10 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

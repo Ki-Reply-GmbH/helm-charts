@@ -1,0 +1,13 @@
+apiVersion: v2
+name: openbao-instance
+description: OpenBao secrets management server for local development (dev mode)
+type: application
+version: 0.1.0
+appVersion: "2.1.0"
+keywords:
+  - openbao
+  - vault
+  - secrets
+  - security
+maintainers:
+  - name: Platform Mesh Team

@@ -1,0 +1,16 @@
+apiVersion: v2
+name: openbao-operator
+description: OpenBao operator with multicluster runtime for managing OpenBaoTenant resources
+type: application
+version: 0.1.0
+appVersion: "v0.1.0"
+keywords:
+  - openbao
+  - operator
+  - secrets
+  - multicluster
+  - kcp
+maintainers:
+  - name: Platform Mesh Team
+annotations:
+  "helm.sh/resource-policy": keep

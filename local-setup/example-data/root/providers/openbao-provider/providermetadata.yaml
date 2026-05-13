@@ -1,0 +1,21 @@
+apiVersion: ui.platform-mesh.io/v1alpha1
+kind: ProviderMetadata
+metadata:
+  name: openbao.apeiro.dev
+spec:
+  displayName: OpenBao Secrets Management
+  description: |
+    Secure, multi-tenant secrets management and encryption services.
+    OpenBao provides isolated namespaces per tenant with dynamic secrets,
+    encryption as a service, and comprehensive access controls.
+  contacts:
+  - displayName: Platform Mesh Team
+    email: platform-mesh@example.com
+    role: ["Technical Support"]
+  preferredSupportChannels:
+  - displayName: Platform Mesh Support
+  icon:
+    light:
+      data: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjkwIiBmaWxsPSIjMTg0MDY5IiAvPgogIDxyZWN0IHg9IjcwIiB5PSI2MCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiByeD0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZjYTAwIiBzdHJva2Utd2lkdGg9IjYiLz4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMTAiIHI9IjgiIGZpbGw9IiNmZmNhMDAiLz4KICA8cmVjdCB4PSI5NiIgeT0iMTEwIiB3aWR0aD0iOCIgaGVpZ2h0PSIyMCIgZmlsbD0iI2ZmY2EwMCIvPgo8L3N2Zz4K"
+    dark:
+      data: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjkwIiBmaWxsPSIjMTg0MDY5IiAvPgogIDxyZWN0IHg9IjcwIiB5PSI2MCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiByeD0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZjYTAwIiBzdHJva2Utd2lkdGg9IjYiLz4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMTAiIHI9IjgiIGZpbGw9IiNmZmNhMDAiLz4KICA8cmVjdCB4PSI5NiIgeT0iMTEwIiB3aWR0aD0iOCIgaGVpZ2h0PSIyMCIgZmlsbD0iI2ZmY2EwMCIvPgo8L3N2Zz4K"

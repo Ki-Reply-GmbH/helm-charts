@@ -236,9 +236,14 @@ if [ "$EXAMPLE_DATA" = true ]; then
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl create-workspace providers --type=root:providers --ignore-existing --server="https://localhost:8443/clusters/root"
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl create-workspace httpbin-provider --type=root:provider --ignore-existing --server="https://localhost:8443/clusters/root:providers"
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl apply -k $SCRIPT_DIR/../example-data/root/providers/httpbin-provider --server="https://localhost:8443/clusters/root:providers:httpbin-provider"
+
+  # Create OpenBao provider workspace
+  KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl create-workspace openbao-provider --type=root:provider --ignore-existing --server="https://localhost:8443/clusters/root:providers"
+  KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl apply -k $SCRIPT_DIR/../example-data/root/providers/openbao-provider --server="https://localhost:8443/clusters/root:providers:openbao-provider"
+
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl apply -k $SCRIPT_DIR/../example-data/root/orgs --server="https://localhost:8443/clusters/root:orgs"
 
-  echo -e "${COL}[$(date '+%H:%M:%S')] Waiting for example provider ${COL_RES}"
+  echo -e "${COL}[$(date '+%H:%M:%S')] Waiting for example providers ${COL_RES}"
 
   kubectl wait --namespace default \
     --for=condition=Ready helmreleases \
@@ -247,6 +252,14 @@ if [ "$EXAMPLE_DATA" = true ]; then
   kubectl wait --namespace default \
     --for=condition=Ready helmreleases \
     --timeout=$KUBECTL_WAIT_TIMEOUT example-httpbin-provider
+
+  kubectl wait --namespace default \
+    --for=condition=Ready helmreleases \
+    --timeout=$KUBECTL_WAIT_TIMEOUT openbao-instance
+
+  kubectl wait --namespace default \
+    --for=condition=Ready helmreleases \
+    --timeout=$KUBECTL_WAIT_TIMEOUT openbao-operator
 
 fi
 

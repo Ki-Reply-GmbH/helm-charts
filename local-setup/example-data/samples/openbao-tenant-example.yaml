@@ -1,0 +1,57 @@
+apiVersion: openbao.apeiro.dev/v1
+kind: OpenBaoTenant
+metadata:
+  name: example-tenant
+spec:
+  # OpenBao namespace to create (isolated secrets storage)
+  namespace: example-tenant
+
+  # WorkspaceRef is automatically populated by KCP
+  # Do not set this manually
+
+  # Authentication configuration - choose one method
+  auth:
+    # AppRole authentication (for machine/application access)
+    appRole:
+      enabled: true
+      # Kubernetes Secret where credentials will be stored
+      secretRef:
+        name: example-tenant-approle
+        namespace: default
+      # Optional: customize token TTL
+      # ttl: "1h"
+      # maxTTL: "24h"
+      # secretIdNumUses: 0  # 0 = unlimited
+
+    # Alternatively, use OIDC for human access (uncomment to use)
+    # oidc:
+    #   enabled: true
+    #   keycloakURL: "https://keycloak.example.com"
+    #   clientID: "my-app"
+    #   clientSecretRef:
+    #     name: my-app-oidc-secret
+    #     namespace: default
+    #   groupsClaim: "groups"
+    #   allowedRedirectURIs:
+    #     - "https://my-app.example.com/callback"
+
+---
+# This secret will be automatically created by the operator
+# with roleId and secretId for AppRole authentication.
+# You can retrieve it after the tenant is ready:
+#
+# kubectl get secret example-tenant-approle -o yaml
+
+# Expected status after successful provisioning:
+# status:
+#   phase: Ready
+#   ready: true
+#   message: "Tenant provisioned successfully"
+#   access:
+#     authMethod: "approle"
+#     openbaoURL: "http://openbao.openbao-provider.svc:8200"
+#     openbaoNamespace: "example-tenant"
+#     authMethodPath: "auth/approle"
+#     appRoleSecretRef:
+#       name: example-tenant-approle
+#       namespace: default
