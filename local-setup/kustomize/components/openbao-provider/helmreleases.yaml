@@ -9,14 +9,18 @@ metadata:
   name: openbao-instance
   namespace: default
 spec:
-  chartRef:
-    kind: OCIRepository
-    name: openbao-instance
-    namespace: default
+  chart:
+    spec:
+      chart: openbao-instance
+      version: "0.1.0"
+      sourceRef:
+        kind: HelmRepository
+        name: openbao-local
+        namespace: flux-system
   interval: 1m
   releaseName: openbao-instance
   targetNamespace: openbao-provider
-  timeout: 15m
+  timeout: 5m # use 15m when stable
   values:
     config:
       devMode: true
@@ -37,14 +41,18 @@ metadata:
 spec:
   dependsOn:
     - name: openbao-instance
-  chartRef:
-    kind: OCIRepository
-    name: openbao-operator
-    namespace: default
+  chart:
+    spec:
+      chart: openbao-operator
+      version: "0.1.0"
+      sourceRef:
+        kind: HelmRepository
+        name: openbao-local
+        namespace: flux-system
   interval: 1m
   releaseName: openbao-operator
   targetNamespace: openbao-provider
-  timeout: 15m
+  timeout: 5m # use 15m when stable
   values:
     operator:
       openbaoAddress: "http://openbao.openbao-provider.svc:8200"

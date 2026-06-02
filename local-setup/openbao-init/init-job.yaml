@@ -1,0 +1,107 @@
+# Kubernetes Job to bootstrap the OpenBao Kubernetes auth backend for the operator.
+# This Job should run once after OpenBao is initialized (e.g., as a Helm post-install hook).
+#
+# It performs the following:
+#   1. Enables the Kubernetes auth backend in OpenBao
+#   2. Configures it to trust the in-cluster Kubernetes API server
+#   3. Creates a policy granting the operator the required permissions
+#   4. Creates a Kubernetes auth role binding the operator's ServiceAccount
+#
+# Prerequisites:
+#   - OpenBao must be initialized, unsealed, and reachable
+#   - The OPENBAO_TOKEN must have sufficient privileges (typically root token during init)
+#
+# Usage with Helm:
+#   Add these annotations to use as a Helm post-install hook:
+#     "helm.sh/hook": post-install
+#     "helm.sh/hook-weight": "10"
+#     "helm.sh/hook-delete-policy": hook-succeeded
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: openbao-init-k8s-auth
+  namespace: openbao-provider  # Adjust to match your OpenBao namespace
+  annotations:
+    # Uncomment for Helm hook usage:
+    # "helm.sh/hook": post-install
+    # "helm.sh/hook-weight": "10"
+    # "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: default
+      containers:
+        - name: init-k8s-auth
+          image: openbao/openbao:latest
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              # Strip trailing whitespace/newlines from the token (common with K8s secrets)
+              export BAO_TOKEN=$(printf '%s' "$BAO_TOKEN" | tr -d '[:space:]')
+
+              # Wait for OpenBao to be ready (status endpoint doesn't need auth)
+              echo "Waiting for OpenBao to be ready..."
+              until BAO_TOKEN= bao status 2>&1 | grep -q "Sealed.*false"; do
+                echo "OpenBao not ready yet, retrying in 5s..."
+                sleep 5
+              done
+              echo "OpenBao is ready."
+
+              # 1. Enable Kubernetes auth backend (idempotent)
+              echo "Enabling Kubernetes auth backend..."
+              bao auth enable kubernetes 2>/dev/null || echo "Kubernetes auth already enabled"
+
+              # 2. Configure Kubernetes auth to use in-cluster API
+              echo "Configuring Kubernetes auth..."
+              bao write auth/kubernetes/config \
+                kubernetes_host="https://kubernetes.default.svc" \
+                kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+              # 3. Create operator policy
+              # Root namespace paths: manage namespaces, policies, auth at root level
+              # Child namespace paths (+ glob): manage policies, auth inside tenant namespaces
+              echo "Creating operator policy..."
+              bao policy write openbao-operator - <<'POLICY'
+              path "sys/namespaces/*" {
+                capabilities = ["create", "read", "update", "delete", "list"]
+              }
+              path "sys/policy/*" {
+                capabilities = ["create", "read", "update", "delete", "list"]
+              }
+              path "sys/auth/*" {
+                capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+              }
+              path "auth/*" {
+                capabilities = ["create", "read", "update", "delete", "list"]
+              }
+              path "+/sys/policy/*" {
+                capabilities = ["create", "read", "update", "delete", "list"]
+              }
+              path "+/sys/auth/*" {
+                capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+              }
+              path "+/auth/*" {
+                capabilities = ["create", "read", "update", "delete", "list"]
+              }
+              POLICY
+
+              # 4. Create Kubernetes auth role for the operator
+              echo "Creating Kubernetes auth role..."
+              bao write auth/kubernetes/role/openbao-operator \
+                bound_service_account_names=openbao-operator-controller-manager \
+                bound_service_account_namespaces=openbao-operator-system \
+                policies=openbao-operator \
+                ttl=1h
+
+              echo "OpenBao Kubernetes auth setup complete."
+          env:
+            - name: BAO_ADDR
+              value: "http://openbao.openbao.svc:8200"  # Adjust to your OpenBao service
+            - name: BAO_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openbao-root-token  # Adjust: secret containing the root token
+                  key: token

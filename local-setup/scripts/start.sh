@@ -71,6 +71,21 @@ if [ "$CACHED" = true ]; then
     setup_registry_proxies
 fi
 
+# Start local OCI registry
+if ! docker inspect kind-registry &>/dev/null; then
+    echo -e "${COL}[$(date '+%H:%M:%S')] Started new local OCI registry on port 5001:5000 ${COL_RES}"
+    docker run -d --restart=always -p 5001:5000 --name kind-registry registry:2
+else
+    echo -e "${COL}[$(date '+%H:%M:%S')] Reuse existing local registry ${COL_RES}"
+fi
+
+# Push local charts into local registry
+echo -e "${COL}[$(date '+%H:%M:%S')] Push local helm charts to local registry ${COL_RES}"
+helm package charts/openbao-instance -d /tmp/charts
+helm package charts/openbao-operator -d /tmp/charts
+helm push /tmp/charts/openbao-instance-*.tgz oci://localhost:5001/helm-charts --plain-http
+helm push /tmp/charts/openbao-operator-*.tgz oci://localhost:5001/helm-charts --plain-http
+
 # Check if kind cluster is already running, if not create it
 if ! check_kind_cluster; then
     if [ -d "$SCRIPT_DIR/certs" ]; then
@@ -96,9 +111,25 @@ if ! check_kind_cluster; then
         rm -f "$TEMP_KIND_CONFIG"
     else
         echo -e "${COL}[$(date '+%H:%M:%S')] Creating kind cluster ${COL_RES}"
-        kind create cluster --config $SCRIPT_DIR/../kind/kind-config.yaml --name platform-mesh --image=$KINDEST_VERSION $KIND_QUIET_FLAG
+
+        # Create temporary kind config with absolute path for containerd certs
+        # uses local kind registry 
+        TEMP_KIND_CONFIG=$(mktemp)
+        CERTS_DIR=$(cd "$SCRIPT_DIR/../kind/containerd-certs.d" && pwd)
+        sed "s|./containerd-certs.d|${CERTS_DIR}|" "$SCRIPT_DIR/../kind/kind-config.yaml" > "$TEMP_KIND_CONFIG"
+
+        kind create cluster --config "$TEMP_KIND_CONFIG" --name platform-mesh --image=$KINDEST_VERSION $KIND_QUIET_FLAG
+        
+        # create cluster to local OCI registry
+        docker network connect kind kind-registry 2>/dev/null || true
+
+        rm -f "$TEMP_KIND_CONFIG"
+        
     fi
 fi
+# load local openbao-operator image - must be manually created beforehand
+echo -e "${COL}[$(date '+%H:%M:%S')] Loading openbao-operator:local image into kind cluster ${COL_RES}"
+kind load docker-image openbao-operator:local --name platform-mesh
 
 mkdir -p $SCRIPT_DIR/certs
 $MKCERT_CMD -cert-file=$SCRIPT_DIR/certs/cert.crt -key-file=$SCRIPT_DIR/certs/cert.key "localhost" "*.localhost" "portal.localhost" "*.portal.localhost" "*.services.portal.localhost" "oci-registry-docker-registry.registry.svc.cluster.local" 2>/dev/null

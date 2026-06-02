@@ -31,52 +31,43 @@ spec:
             set -e
 
             echo "Waiting for OpenBao to be ready..."
-            while ! bao status >/dev/null 2>&1; do
+            until BAO_TOKEN= bao status 2>&1 | grep -q "Sealed.*false"; do
               echo "  OpenBao not ready yet, waiting..."
-              sleep 2
+              sleep 5
             done
-            bao status
             echo "OpenBao is ready!"
 
             echo "Enabling Kubernetes auth backend..."
-            if bao auth list | grep -q 'kubernetes/'; then
-              echo "  Kubernetes auth already enabled"
-            else
-              bao auth enable kubernetes
-              echo "  Kubernetes auth enabled"
-            fi
+            bao auth enable kubernetes 2>/dev/null || echo "  Kubernetes auth already enabled"
 
             echo "Configuring Kubernetes auth..."
             bao write auth/kubernetes/config \
-              kubernetes_host="https://kubernetes.default.svc:443" \
+              kubernetes_host="https://kubernetes.default.svc" \
               kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
             echo "  Kubernetes auth configured"
 
             echo "Creating operator policy..."
-            bao policy write {{ .Values.initJob.operatorPolicyName }} - <<EOF
-            # Allow operator to manage namespaces
+            bao policy write {{ .Values.initJob.operatorPolicyName }} - <<'EOF'
             path "sys/namespaces/*" {
               capabilities = ["create", "read", "update", "delete", "list"]
             }
-
-            # Allow operator to manage policies
-            path "sys/policies/acl/*" {
+            path "sys/policy/*" {
               capabilities = ["create", "read", "update", "delete", "list"]
             }
-
-            # Allow operator to manage auth methods
+            path "sys/auth/*" {
+              capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+            }
             path "auth/*" {
               capabilities = ["create", "read", "update", "delete", "list"]
             }
-
-            # Allow operator to manage identity
-            path "identity/*" {
+            path "+/sys/policy/*" {
               capabilities = ["create", "read", "update", "delete", "list"]
             }
-
-            # Allow operator to read system health
-            path "sys/health" {
-              capabilities = ["read"]
+            path "+/sys/auth/*" {
+              capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+            }
+            path "+/auth/*" {
+              capabilities = ["create", "read", "update", "delete", "list"]
             }
             EOF
             echo "  Operator policy created"
