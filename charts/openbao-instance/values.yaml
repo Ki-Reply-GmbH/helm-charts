@@ -1,5 +1,4 @@
 # Default values for openbao-instance
-# This deploys OpenBao in dev mode for local development
 
 replicaCount: 1
 
@@ -15,11 +14,11 @@ fullnameOverride: ""
 
 # OpenBao server configuration
 config:
-  # Dev mode: auto-unsealed, in-memory storage
-  # WARNING: Data is lost on pod restart. Not for production!
-  devMode: true
-  devRootToken: "root"
-  devListenAddress: "0.0.0.0:8200"
+  devMode: false
+  storage:
+    type: file
+    path: /vault/data
+    size: 1Gi
 
 # Service configuration
 service:
@@ -36,7 +35,7 @@ resources:
     cpu: 100m
     memory: 128Mi
 
-# Init job - configures Kubernetes authentication after OpenBao starts
+# Init job - initializes, unseals, and configures Kubernetes auth
 initJob:
   enabled: true
   image:
@@ -54,7 +53,6 @@ initJob:
       memory: 64Mi
   # OpenBao configuration
   openbaoAddress: "http://openbao:8200"
-  rootToken: "root"
   # Operator ServiceAccount configuration
   operatorServiceAccount: "openbao-operator-controller-manager"
   operatorNamespace: "openbao-provider"
@@ -63,7 +61,7 @@ initJob:
 
 # Pod security context
 podSecurityContext:
-  runAsNonRoot: false  # Dev mode requires root
+  runAsNonRoot: true
   fsGroup: 1000
 
 # Container security context
@@ -71,8 +69,8 @@ securityContext:
   capabilities:
     add:
       - IPC_LOCK  # Required for OpenBao memory locking
-  runAsNonRoot: false
-  runAsUser: 0
+  runAsNonRoot: true
+  runAsUser: 100  # vault user in openbao image
 
 nodeSelector: {}
 tolerations: []

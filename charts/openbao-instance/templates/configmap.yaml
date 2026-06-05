@@ -6,12 +6,8 @@ metadata:
     {{- include "openbao-instance.labels" . | nindent 4 }}
 data:
   config.hcl: |
-    # OpenBao dev mode configuration
-    # This is for local development only - not for production!
-
     {{- if .Values.config.devMode }}
     # Dev mode is enabled via command line flag
-    # Configuration here is minimal since dev mode handles most setup
     {{- else }}
     ui = true
 
@@ -20,5 +16,7 @@ data:
       tls_disable = true
     }
 
-    storage "inmem" {}
+    storage "{{ .Values.config.storage.type }}" {
+      path = "{{ .Values.config.storage.path }}"
+    }
     {{- end }}

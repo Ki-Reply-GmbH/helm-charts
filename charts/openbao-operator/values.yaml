@@ -27,6 +27,7 @@ operator:
 
   # Multicluster runtime settings
   apiexportEndpointsliceName: "openbao.apeiro.dev"
+  kcpKubeconfigSecretName: "openbao-kubeconfig"
 
   # Resource limits
   resources:

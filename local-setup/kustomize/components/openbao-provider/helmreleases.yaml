@@ -20,12 +20,10 @@ spec:
   interval: 1m
   releaseName: openbao-instance
   targetNamespace: openbao-provider
-  timeout: 5m # use 15m when stable
+  timeout: 15m # use 15m when stable
   values:
     config:
-      devMode: true
-      devRootToken: "root"
-      devListenAddress: "0.0.0.0:8200"
+      devMode: false
     initJob:
       enabled: true
       openbaoAddress: "http://openbao:8200"
@@ -52,7 +50,7 @@ spec:
   interval: 1m
   releaseName: openbao-operator
   targetNamespace: openbao-provider
-  timeout: 5m # use 15m when stable
+  timeout: 15m # use 15m when stable
   values:
     operator:
       openbaoAddress: "http://openbao.openbao-provider.svc:8200"

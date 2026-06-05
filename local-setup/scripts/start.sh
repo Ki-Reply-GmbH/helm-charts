@@ -86,6 +86,14 @@ helm package charts/openbao-operator -d /tmp/charts
 helm push /tmp/charts/openbao-instance-*.tgz oci://localhost:5001/helm-charts --plain-http
 helm push /tmp/charts/openbao-operator-*.tgz oci://localhost:5001/helm-charts --plain-http
 
+# Force Flux to pick up newly pushed charts if the cluster is already running
+if check_kind_cluster 2>/dev/null; then
+  echo -e "${COL}[$(date '+%H:%M:%S')] Reconciling openbao Flux sources ${COL_RES}"
+  kubectl annotate helmrepository openbao-local -n flux-system reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
+  kubectl annotate helmrelease openbao-instance -n default reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
+  kubectl annotate helmrelease openbao-operator -n default reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
+fi
+
 # Check if kind cluster is already running, if not create it
 if ! check_kind_cluster; then
     if [ -d "$SCRIPT_DIR/certs" ]; then

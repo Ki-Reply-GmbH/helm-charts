@@ -52,6 +52,7 @@ spec:
         - --openbao-k8s-token-path={{ .Values.operator.openbaoK8sTokenPath }}
         - --admin-policy-privileges={{ .Values.operator.adminPolicyPrivileges }}
         - --apiexport-endpointslice-name={{ .Values.operator.apiexportEndpointsliceName }}
+        - --kubeconfig=/etc/openbao-operator/kcp/kubeconfig
         {{- if .Values.metrics.enable }}
         - --metrics-bind-address=:8443
         - --metrics-secure=true
@@ -81,6 +82,14 @@ spec:
           periodSeconds: 10
         resources:
           {{- toYaml .Values.operator.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /etc/openbao-operator/kcp
+          name: kcp-kubeconfig
+          readOnly: true
+      volumes:
+      - name: kcp-kubeconfig
+        secret:
+          secretName: {{ .Values.operator.kcpKubeconfigSecretName }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

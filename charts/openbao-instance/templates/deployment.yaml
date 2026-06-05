@@ -54,7 +54,7 @@ spec:
             protocol: TCP
         livenessProbe:
           httpGet:
-            path: /v1/sys/health?standbyok=true
+            path: /v1/sys/health?standbyok=true&uninitcode=204&sealedcode=204
             port: 8200
             scheme: HTTP
           initialDelaySeconds: 10
@@ -63,7 +63,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /v1/sys/health?standbyok=true&perfstandbyok=true
+            path: /v1/sys/health?standbyok=true&perfstandbyok=true&uninitcode=204&sealedcode=204
             port: 8200
             scheme: HTTP
           initialDelaySeconds: 10
@@ -76,10 +76,19 @@ spec:
           - name: config
             mountPath: /vault/config
             readOnly: true
+          {{- if not .Values.config.devMode }}
+          - name: data
+            mountPath: {{ .Values.config.storage.path }}
+          {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ include "openbao-instance.fullname" . }}-config
+        {{- if not .Values.config.devMode }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "openbao-instance.fullname" . }}-data
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

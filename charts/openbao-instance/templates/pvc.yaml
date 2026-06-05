@@ -1,0 +1,14 @@
+{{- if not .Values.config.devMode }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "openbao-instance.fullname" . }}-data
+  labels:
+    {{- include "openbao-instance.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.config.storage.size | default "1Gi" }}
+{{- end }}
