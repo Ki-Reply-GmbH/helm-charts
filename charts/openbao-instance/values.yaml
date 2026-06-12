@@ -1,0 +1,83 @@
+# Default values for openbao-instance
+
+replicaCount: 1
+
+image:
+  registry: docker.io
+  repository: openbao/openbao
+  tag: "2.5.4"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# OpenBao server configuration
+config:
+  devMode: false
+  storage:
+    type: file
+    path: /vault/data
+    size: 1Gi
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8200
+  annotations: {}
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Init job - initializes, unseals, and configures Kubernetes auth
+initJob:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: openbao/openbao
+    tag: "2.5.4"
+  backoffLimit: 5
+  restartPolicy: Never
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  # OpenBao configuration
+  openbaoAddress: "http://openbao:8200"
+  # Operator ServiceAccount configuration
+  operatorServiceAccount: "openbao-operator-controller-manager"
+  operatorNamespace: "openbao-provider"
+  operatorRole: "openbao-operator"
+  operatorPolicyName: "openbao-operator"
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  capabilities:
+    add:
+      - IPC_LOCK  # Required for OpenBao memory locking
+  runAsNonRoot: true
+  runAsUser: 100  # vault user in openbao image
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""

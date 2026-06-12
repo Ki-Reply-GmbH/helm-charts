@@ -211,6 +211,33 @@ tasks:
     cmds:
       - ./local-setup/scripts/check-ocm-images.sh
 
+  local-setup:check-ocm-pin:
+    desc: Verify pinned OCM component version exists in GHCR
+    silent: true
+    deps:
+      - task: setup:ocm
+    cmds:
+      - |
+        PINNED_VERSION=$(yq '.spec.semver' local-setup/kustomize/components/ocm/component.yaml)
+        if [ -z "$PINNED_VERSION" ] || [ "$PINNED_VERSION" = "null" ]; then
+          echo "Pinned OCM component version is missing in local-setup/kustomize/components/ocm/component.yaml"
+          exit 1
+        fi
+
+        echo "Checking pinned OCM component version: $PINNED_VERSION"
+        if {{.LOCAL_BIN}}/ocm --config .ocm/config get componentversions --repo ghcr.io/platform-mesh github.com/platform-mesh/platform-mesh:$PINNED_VERSION -oyaml >/dev/null 2>&1; then
+          echo "Pinned OCM component version is available in GHCR"
+          exit 0
+        fi
+
+        echo "Pinned OCM component version not found in GHCR: $PINNED_VERSION"
+        LATEST_VERSION=$({{.LOCAL_BIN}}/ocm --config .ocm/config get componentversions --repo ghcr.io/platform-mesh github.com/platform-mesh/platform-mesh --latest -ojson 2>/dev/null | jq -r '.items[0].component.version // empty' 2>/dev/null || true)
+        if [ -n "$LATEST_VERSION" ]; then
+          echo "Latest available OCM component version: $LATEST_VERSION"
+        fi
+        echo "Run: task bump-local-setup-component-version"
+        exit 1
+
   bump-local-setup-component-version:
     deps:
       - task: setup:ocm
@@ -330,6 +357,14 @@ tasks:
     vars:
       FLAGS: '{{.FLAGS | default ""}}'
     cmds:
+      - cmd: |
+          if echo "{{.FLAGS}}" | grep -q -- "--prerelease"; then
+            echo "Skipping OCM pin check for prerelease mode"
+          else
+            task local-setup:check-ocm-pin
+          fi
+        silent: true
+
       - |
         if kind get clusters 2>/dev/null | grep -q "^platform-mesh$"; then
           read -r -p "Are you sure you want to delete the cluster? [y/N] " response && if [ "$response" != "y" ]; then echo "Aborted."; exit 1; fi
@@ -343,6 +378,14 @@ tasks:
     vars:
       FLAGS: '{{.FLAGS | default ""}}'
     cmds:
+      - cmd: |
+          if echo "{{.FLAGS}}" | grep -q -- "--prerelease"; then
+            echo "Skipping OCM pin check for prerelease mode"
+          else
+            task local-setup:check-ocm-pin
+          fi
+        silent: true
+
       - ./local-setup/scripts/start.sh {{.FLAGS}}
 
   # Convenience aliases with common flag combinations

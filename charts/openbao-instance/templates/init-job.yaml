@@ -1,0 +1,273 @@
+{{- if .Values.initJob.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "openbao-instance.fullname" . }}-init-k8s-auth
+  labels:
+    {{- include "openbao-instance.labels" . | nindent 4 }}
+    app.kubernetes.io/component: init-job
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ .Values.initJob.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "openbao-instance.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: init-job
+    spec:
+      restartPolicy: {{ .Values.initJob.restartPolicy }}
+      serviceAccountName: {{ include "openbao-instance.serviceAccountName" . }}
+      initContainers:
+      - name: copy-curl
+        image: alpine/curl:8.11.1
+        command:
+          - sh
+          - -c
+          - |
+            cp /usr/bin/curl /tools/curl
+            for lib in libcurl.so.4 libssl.so.3 libcrypto.so.3 libnghttp2.so.14 \
+                        libcares.so.2 libidn2.so.0 libpsl.so.5 libzstd.so.1 \
+                        libbrotlidec.so.1 libbrotlicommon.so.1 libunistring.so.5; do
+              cp /usr/lib/$lib /tools/
+            done
+            cp /usr/lib/libz.so.1 /tools/ 2>/dev/null || cp /lib/libz.so.1 /tools/
+        volumeMounts:
+          - name: tools
+            mountPath: /tools
+      containers:
+      - name: init-k8s-auth
+        image: "{{ .Values.initJob.image.registry }}/{{ .Values.initJob.image.repository }}:{{ .Values.initJob.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+
+            echo "Waiting for OpenBao to be reachable..."
+            until /tools/curl -sf \
+              "http://openbao.{{ .Release.Namespace }}.svc.cluster.local:8200/v1/sys/health?uninitcode=200&sealedcode=200" \
+              >/dev/null 2>&1; do
+              echo "  OpenBao not reachable yet, waiting..."
+              sleep 2
+            done
+            echo "OpenBao is reachable!"
+
+            INITIALIZED=$(bao status -format=json 2>/dev/null | grep '"initialized"' | grep -o 'true\|false' || true)
+
+            K8S_API="https://kubernetes.default.svc:443"
+            SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            NAMESPACE={{ .Release.Namespace }}
+
+            k8s_get_secret() {
+              /tools/curl -sf --cacert "$CA_CERT" \
+                -H "Authorization: Bearer $SA_TOKEN" \
+                "$K8S_API/api/v1/namespaces/$NAMESPACE/secrets/$1"
+            }
+
+            k8s_patch_secret() {
+              /tools/curl -sf --cacert "$CA_CERT" \
+                -H "Authorization: Bearer $SA_TOKEN" \
+                -H "Content-Type: application/strategic-merge-patch+json" \
+                -X PATCH \
+                -d "$2" \
+                "$K8S_API/api/v1/namespaces/$NAMESPACE/secrets/$1"
+            }
+
+            k8s_apply_secret() {
+              /tools/curl -sf --cacert "$CA_CERT" \
+                -H "Authorization: Bearer $SA_TOKEN" \
+                -H "Content-Type: application/json" \
+                -X POST \
+                -d "$1" \
+                "$K8S_API/api/v1/namespaces/$NAMESPACE/secrets" 2>/dev/null || \
+              /tools/curl -sf --cacert "$CA_CERT" \
+                -H "Authorization: Bearer $SA_TOKEN" \
+                -H "Content-Type: application/strategic-merge-patch+json" \
+                -X PATCH \
+                -d "$1" \
+                "$K8S_API/api/v1/namespaces/$NAMESPACE/secrets/openbao-unseal-key"
+            }
+
+            if [ "$INITIALIZED" = "false" ]; then
+              echo "Initializing OpenBao (1 key share, threshold 1)..."
+              until bao operator init -key-shares=1 -key-threshold=1 -format=json > /tmp/init.json 2>/tmp/init.err; do
+                if grep -q "already initialized" /tmp/init.err 2>/dev/null; then
+                  echo "  OpenBao reports already initialized — concurrent init, treating as success"
+                  break
+                fi
+                echo "  Init failed ($(cat /tmp/init.err 2>/dev/null | head -1)), retrying in 3s..."
+                sleep 3
+              done
+              UNSEAL_KEY=$(cat /tmp/init.json | grep '"unseal_keys_b64"' -A 2 | grep '"' | tail -1 | tr -d ' ",' || true)
+              ROOT_TOKEN=$(cat /tmp/init.json | grep '"root_token"' | awk -F'"' '{print $4}' || true)
+              echo "  Waiting for OpenBao to accept connections after init..."
+              until bao status -format=json 2>/dev/null | grep -q '"initialized"'; do
+                echo "  Waiting..."
+                sleep 2
+              done
+              echo "  Unsealing..."
+              until bao operator unseal "$UNSEAL_KEY" 2>/dev/null; do
+                echo "  Unseal failed, retrying in 2s..."
+                sleep 2
+              done
+              echo "  Saving unseal key to secret..."
+              UNSEAL_KEY_B64=$(printf '%s' "$UNSEAL_KEY" | base64)
+              k8s_apply_secret "{\"apiVersion\":\"v1\",\"kind\":\"Secret\",\"metadata\":{\"name\":\"openbao-unseal-key\",\"namespace\":\"$NAMESPACE\"},\"data\":{\"key\":\"$UNSEAL_KEY_B64\"}}"
+              echo "  Patching root token secret..."
+              ROOT_TOKEN_B64=$(printf '%s' "$ROOT_TOKEN" | base64)
+              k8s_patch_secret "openbao-root-token" "{\"data\":{\"token\":\"$ROOT_TOKEN_B64\"}}"
+              export BAO_TOKEN="$ROOT_TOKEN"
+              echo "  OpenBao initialized and unsealed!"
+            else
+              SEALED=$(bao status -format=json 2>/dev/null | grep '"sealed"' | grep -o 'true\|false' || true)
+              if [ "$SEALED" = "true" ]; then
+                echo "OpenBao is sealed — retrieving unseal key from secret..."
+                UNSEAL_KEY=$(k8s_get_secret "openbao-unseal-key" | grep '"key"' | awk -F'"' '{print $4}' | base64 -d || true)
+                if [ -n "$UNSEAL_KEY" ]; then
+                  until bao operator unseal "$UNSEAL_KEY" 2>/dev/null; do
+                    echo "  Unseal failed, retrying in 2s..."
+                    sleep 2
+                  done
+                  echo "  Unsealed!"
+                else
+                  echo "  ERROR: vault is sealed and no unseal key secret found. Unseal manually."
+                  exit 1
+                fi
+              fi
+              echo "OpenBao already initialized, skipping init."
+              until BAO_TOKEN=$(k8s_get_secret "openbao-root-token" | grep '"token"' | awk -F'"' '{print $4}' | base64 -d || true) && [ -n "$BAO_TOKEN" ]; do
+                echo "  Waiting for root token secret to be populated..."
+                sleep 2
+              done
+              export BAO_TOKEN
+            fi
+
+            echo "Waiting for OpenBao to be active (initialized + unsealed)..."
+            until bao status -format=json 2>/dev/null | grep '"sealed": false' >/dev/null 2>&1; do
+              echo "  Waiting for unseal..."
+              sleep 2
+            done
+            echo "OpenBao is ready!"
+
+            echo "Enabling Kubernetes auth backend..."
+            until bao auth list 2>/dev/null | grep -q 'kubernetes/'; do
+              if bao auth list >/dev/null 2>&1; then
+                bao auth enable kubernetes 2>/dev/null || true
+              else
+                echo "  Waiting for OpenBao to accept requests..."
+              fi
+              sleep 2
+            done
+            echo "  Kubernetes auth enabled"
+
+            echo "Configuring Kubernetes auth..."
+            until bao write auth/kubernetes/config \
+              kubernetes_host="https://kubernetes.default.svc:443" \
+              kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt 2>/dev/null; do
+              echo "  Retrying kubernetes auth config..."
+              sleep 2
+            done
+            echo "  Kubernetes auth configured"
+
+            echo "Creating operator policy..."
+            cat > /tmp/operator-policy.hcl <<EOF
+            path "sys/namespaces/*" {
+              capabilities = ["create", "read", "update", "delete", "list"]
+            }
+            path "sys/policy/*" {
+              capabilities = ["create", "read", "update", "delete", "list"]
+            }
+            path "sys/auth/*" {
+              capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+            }
+            path "auth/*" {
+              capabilities = ["create", "read", "update", "delete", "list"]
+            }
+            path "+/sys/policy/*" {
+              capabilities = ["create", "read", "update", "delete", "list"]
+            }
+            path "+/sys/auth/*" {
+              capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+            }
+            path "+/auth/*" {
+              capabilities = ["create", "read", "update", "delete", "list"]
+            }
+            EOF
+            until bao policy write {{ .Values.initJob.operatorPolicyName }} /tmp/operator-policy.hcl 2>/dev/null; do
+              echo "  Retrying policy write..."
+              sleep 2
+            done
+            echo "  Operator policy created"
+
+            echo "Creating Kubernetes auth role for operator..."
+            until bao write auth/kubernetes/role/{{ .Values.initJob.operatorRole }} \
+              bound_service_account_names="{{ .Values.initJob.operatorServiceAccount }}" \
+              bound_service_account_namespaces="{{ .Values.initJob.operatorNamespace }}" \
+              policies="{{ .Values.initJob.operatorPolicyName }}" \
+              ttl=1h 2>/dev/null; do
+              echo "  Retrying role write..."
+              sleep 2
+            done
+            echo "  Operator role created"
+
+            # Also bootstrap the operator policy and Kubernetes auth inside the top-level
+            # namespaces the operator manages ("orgs", "providers"). This is a belt-and-suspenders
+            # measure: the operator code uses a root token for all OpenBao calls, so these
+            # aren't strictly required. They allow a Kubernetes-auth token (if one is ever used
+            # directly against these namespaces) to also have the necessary permissions.
+            for NS in orgs providers; do
+              echo "Bootstrapping operator permissions in namespace: $NS"
+              bao namespace create "$NS" 2>/dev/null || echo "  Namespace $NS already exists"
+
+              BAO_NAMESPACE="$NS" bao policy write {{ .Values.initJob.operatorPolicyName }} /tmp/operator-policy.hcl 2>/dev/null \
+                && echo "  Policy written in $NS" || echo "  Policy write in $NS skipped (may already exist)"
+
+              BAO_NAMESPACE="$NS" bao auth enable kubernetes 2>/dev/null || echo "  kubernetes auth already enabled in $NS"
+              BAO_NAMESPACE="$NS" bao write auth/kubernetes/config \
+                kubernetes_host="https://kubernetes.default.svc:443" \
+                kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt 2>/dev/null \
+                && echo "  kubernetes auth configured in $NS" || echo "  kubernetes auth config skipped in $NS"
+              BAO_NAMESPACE="$NS" bao write auth/kubernetes/role/{{ .Values.initJob.operatorRole }} \
+                bound_service_account_names="{{ .Values.initJob.operatorServiceAccount }}" \
+                bound_service_account_namespaces="{{ .Values.initJob.operatorNamespace }}" \
+                policies="{{ .Values.initJob.operatorPolicyName }}" \
+                ttl=1h 2>/dev/null \
+                && echo "  Role created in $NS" || echo "  Role creation skipped in $NS"
+            done
+
+            echo "Init job completed successfully!"
+        env:
+          - name: BAO_ADDR
+            value: "http://openbao.{{ .Release.Namespace }}.svc.cluster.local:8200"
+          - name: SKIP_SETCAP
+            value: "true"
+          - name: LD_LIBRARY_PATH
+            value: /tools
+        resources:
+          {{- toYaml .Values.initJob.resources | nindent 12 }}
+        volumeMounts:
+          - name: sa-token
+            mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+            readOnly: true
+          - name: tools
+            mountPath: /tools
+      volumes:
+        - name: tools
+          emptyDir: {}
+        - name: sa-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3607
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+{{- end }}

@@ -1,0 +1,85 @@
+# Default values for openbao-operator
+enabled: true
+nameOverride: ""
+fullnameOverride: ""
+
+# Operator deployment configuration
+replicaCount: 1
+
+# Image configuration
+image:
+  registry: ""
+  repository: openbao-operator
+  tag: "local"
+  pullPolicy: Never
+
+imagePullSecrets: []
+
+# Operator configuration
+operator:
+  # OpenBao connection settings
+  openbaoAddress: "http://openbao.openbao-provider.svc:8200"
+  openbaoAuthMethod: "kubernetes"  # kubernetes or token
+  openbaoK8sRole: "openbao-operator"
+  openbaoK8sMountPath: "kubernetes"
+  openbaoK8sTokenPath: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  adminPolicyPrivileges: "create,read,update,delete,list"
+
+  # Multicluster runtime settings
+  apiexportEndpointsliceName: "openbao.apeiro.dev"
+  kcpKubeconfigSecretName: "openbao-kubeconfig"
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+
+# Controller manager service account
+controllerManager:
+  serviceAccountName: openbao-operator-controller-manager
+  serviceAccount:
+    annotations: {}
+
+# RBAC
+rbac:
+  enable: true
+
+# Pod configuration
+podAnnotations: {}
+podLabels: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Host aliases injected into the operator pod's /etc/hosts.
+# Required to resolve KCP virtual workspace hostnames (e.g. root.kcp.localhost)
+# from inside the cluster. Set the Traefik service ClusterIP as the target.
+# Example for local-setup:
+#   - ip: "10.96.188.4"
+#     hostnames:
+#       - "localhost"
+#       - "portal.localhost"
+#       - "kcp.localhost"
+#       - "root.kcp.localhost"
+hostAliases: []
+
+# Metrics configuration
+metrics:
+  enable: true
+
+# Prometheus ServiceMonitor
+prometheus:
+  enable: false
+
+# Leader election
+leaderElection:
+  enabled: true
+
+# Health probe configuration
+healthProbe:
+  bindAddress: ":8081"

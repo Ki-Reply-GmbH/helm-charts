@@ -1,0 +1,163 @@
+apiVersion: ui.platform-mesh.io/v1alpha1
+kind: ContentConfiguration
+metadata:
+  labels:
+    ui.platform-mesh.io/entity: core_platform-mesh_io_account
+    ui.platform-mesh.io/content-for: openbao.apeiro.dev
+  name: openbao-ui
+spec:
+  inlineConfiguration:
+    content: |-
+      {
+          "name": "openbaotenants",
+          "creationTimestamp": "2026-05-07T00:00:00Z",
+          "luigiConfigFragment": {
+              "data": {
+                  "nodes": [
+                      {
+                          "pathSegment": "openbao_apeiro_dev_openbaotenants",
+                          "navigationContext": "openbao_apeiro_dev_openbaotenants",
+                          "label": "OpenBao Tenants",
+                          "icon": "key",
+                          "order": 850,
+                          "entityType": "main.core_platform-mesh_io_account",
+                          "loadingIndicator": {
+                              "enabled": false
+                          },
+                          "keepSelectedForChildren": true,
+                          "url": "/assets/platform-mesh-portal-ui-wc.js#generic-list-view",
+                          "webcomponent": {
+                              "selfRegistered": true
+                          },
+                          "context": {
+                              "resourceDefinition": {
+                                  "apiGroup": "openbao_apeiro_dev",
+                                  "entityCollection": "OpenBaoTenants",
+                                  "version": "v1",
+                                  "entity": "OpenBaoTenant",
+                                  "scope": "Cluster",
+                                  "namespace": null,
+                                  "readyCondition": {
+                                    "jsonPathExpression": "status.ready",
+                                    "property": ["status.ready"]
+                                  },
+                                  "ui": {
+                                      "listView": {
+                                          "fields": [
+                                              {
+                                                  "label": "Name",
+                                                  "property": "metadata.name"
+                                              },
+                                              {
+                                                  "label": "Auth Method",
+                                                  "property": "status.access.authMethod"
+                                              },
+                                              {
+                                                  "label": "Ready",
+                                                  "property": "status.ready",
+                                                  "uiSettings": {
+                                                    "displayAs": "boolIcon"
+                                                  }
+                                              },
+                                              {
+                                                  "label": "Phase",
+                                                  "property": "status.phase"
+                                              }
+                                          ]
+                                      },
+                                      "detailView": {
+                                        "fields": [
+                                          {
+                                            "label": "Name",
+                                            "property": "metadata.name"
+                                          },
+                                          {
+                                            "label": "OpenBao Namespace",
+                                            "property": "status.access.namespace"
+                                          },
+                                          {
+                                            "label": "Phase",
+                                            "property": "status.phase"
+                                          },
+                                          {
+                                            "label": "Ready",
+                                            "property": "status.ready"
+                                          },
+                                          {
+                                            "label": "Auth Method",
+                                            "property": "status.access.authMethod"
+                                          },
+                                          {
+                                            "label": "OpenBao URL",
+                                            "property": "status.access.openbaoUrl"
+                                          }
+                                        ]
+                                      },
+                                      "createView": {
+                                          "fields": [
+                                              {
+                                                  "label": "Name",
+                                                  "property": "metadata.name",
+                                                  "required": true,
+                                                  "helpText": "Name of the tenant (lowercase alphanumeric with hyphens)"
+                                              },
+                                              {
+                                                  "label": "Auth Secret Name",
+                                                  "property": "spec.auth.appRole.secretRef.name",
+                                                  "required": true,
+                                                  "helpText": "Name of the Kubernetes Secret where AppRole credentials (roleId, secretId) will be stored"
+                                              },
+                                              {
+                                                  "label": "Auth Secret Namespace",
+                                                  "property": "spec.auth.appRole.secretRef.namespace",
+                                                  "required": false,
+                                                  "helpText": "Namespace for the credentials secret (defaults to tenant namespace if empty)"
+                                              }
+                                          ]
+                                      }
+                                  }
+                              }
+                          },
+                          "children": [
+                            {
+                                "pathSegment": ":openbaotenantId",
+                                "hideFromNav": true,
+                                "keepSelectedForChildren": false,
+                                "defineEntity": {
+                                    "id": "openbao_apeiro_dev_openbaotenant",
+                                    "contextKey": "openbaotenantId",
+                                    "graphqlEntity": {
+                                        "group": "openbao_apeiro_dev",
+                                        "version": "v1",
+                                        "kind": "OpenBaoTenant",
+                                        "query": "{ metadata { name } }"
+                                    }
+                                },
+                                "context": {
+                                    "accountId": ":accountId",
+                                    "openbaotenantId": ":openbaotenantId",
+                                    "resourceId": ":openbaotenantId"
+                                }
+                            }
+                          ]
+                      },
+                      {
+                        "entityType": "main.core_platform-mesh_io_account.openbao_apeiro_dev_openbaotenant",
+                        "pathSegment": "dashboard",
+                        "label": "Dashboard",
+                        "url": "/assets/platform-mesh-portal-ui-wc.js#generic-detail-view",
+                        "webcomponent": {
+                          "selfRegistered": true
+                        },
+                        "defineEntity": {
+                            "id": "dashboard"
+                        },
+                        "compound": {
+                            "children": []
+                        }
+                      }
+                  ]
+              }
+          }
+      }
+    contentType: json

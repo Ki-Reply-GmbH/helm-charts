@@ -71,6 +71,29 @@ if [ "$CACHED" = true ]; then
     setup_registry_proxies
 fi
 
+# Start local OCI registry
+if ! docker inspect kind-registry &>/dev/null; then
+    echo -e "${COL}[$(date '+%H:%M:%S')] Started new local OCI registry on port 5001:5000 ${COL_RES}"
+    docker run -d --restart=always -p 5001:5000 --name kind-registry registry:2
+else
+    echo -e "${COL}[$(date '+%H:%M:%S')] Reuse existing local registry ${COL_RES}"
+fi
+
+# Push local charts into local registry
+echo -e "${COL}[$(date '+%H:%M:%S')] Push local helm charts to local registry ${COL_RES}"
+helm package charts/openbao-instance -d /tmp/charts
+helm package charts/openbao-operator -d /tmp/charts
+helm push /tmp/charts/openbao-instance-*.tgz oci://localhost:5001/helm-charts --plain-http
+helm push /tmp/charts/openbao-operator-*.tgz oci://localhost:5001/helm-charts --plain-http
+
+# Force Flux to pick up newly pushed charts if the cluster is already running
+if check_kind_cluster 2>/dev/null; then
+  echo -e "${COL}[$(date '+%H:%M:%S')] Reconciling openbao Flux sources ${COL_RES}"
+  kubectl annotate helmrepository openbao-local -n flux-system reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
+  kubectl annotate helmrelease openbao-instance -n default reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
+  kubectl annotate helmrelease openbao-operator -n default reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
+fi
+
 # Check if kind cluster is already running, if not create it
 if ! check_kind_cluster; then
     if [ -d "$SCRIPT_DIR/certs" ]; then
@@ -96,9 +119,25 @@ if ! check_kind_cluster; then
         rm -f "$TEMP_KIND_CONFIG"
     else
         echo -e "${COL}[$(date '+%H:%M:%S')] Creating kind cluster ${COL_RES}"
-        kind create cluster --config $SCRIPT_DIR/../kind/kind-config.yaml --name platform-mesh --image=$KINDEST_VERSION $KIND_QUIET_FLAG
+
+        # Create temporary kind config with absolute path for containerd certs
+        # uses local kind registry 
+        TEMP_KIND_CONFIG=$(mktemp)
+        CERTS_DIR=$(cd "$SCRIPT_DIR/../kind/containerd-certs.d" && pwd)
+        sed "s|./containerd-certs.d|${CERTS_DIR}|" "$SCRIPT_DIR/../kind/kind-config.yaml" > "$TEMP_KIND_CONFIG"
+
+        kind create cluster --config "$TEMP_KIND_CONFIG" --name platform-mesh --image=$KINDEST_VERSION $KIND_QUIET_FLAG
+        
+        # create cluster to local OCI registry
+        docker network connect kind kind-registry 2>/dev/null || true
+
+        rm -f "$TEMP_KIND_CONFIG"
+        
     fi
 fi
+# load local openbao-operator image - must be manually created beforehand
+echo -e "${COL}[$(date '+%H:%M:%S')] Loading openbao-operator:local image into kind cluster ${COL_RES}"
+kind load docker-image openbao-operator:local --name platform-mesh
 
 mkdir -p $SCRIPT_DIR/certs
 $MKCERT_CMD -cert-file=$SCRIPT_DIR/certs/cert.crt -key-file=$SCRIPT_DIR/certs/cert.key "localhost" "*.localhost" "portal.localhost" "*.portal.localhost" "*.services.portal.localhost" "oci-registry-docker-registry.registry.svc.cluster.local" 2>/dev/null
@@ -232,13 +271,18 @@ if [ -f "$SCRIPT_DIR/post-platform-mesh-hook.sh" ]; then
 fi
 
 if [ "$EXAMPLE_DATA" = true ]; then
-  
+
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl create-workspace providers --type=root:providers --ignore-existing --server="https://localhost:8443/clusters/root"
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl create-workspace httpbin-provider --type=root:provider --ignore-existing --server="https://localhost:8443/clusters/root:providers"
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl apply -k $SCRIPT_DIR/../example-data/root/providers/httpbin-provider --server="https://localhost:8443/clusters/root:providers:httpbin-provider"
+
+  # Create OpenBao provider workspace
+  KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl create-workspace openbao-provider --type=root:provider --ignore-existing --server="https://localhost:8443/clusters/root:providers"
+  KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl apply -k $SCRIPT_DIR/../example-data/root/providers/openbao-provider --server="https://localhost:8443/clusters/root:providers:openbao-provider"
+
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl apply -k $SCRIPT_DIR/../example-data/root/orgs --server="https://localhost:8443/clusters/root:orgs"
 
-  echo -e "${COL}[$(date '+%H:%M:%S')] Waiting for example provider ${COL_RES}"
+  echo -e "${COL}[$(date '+%H:%M:%S')] Waiting for example providers ${COL_RES}"
 
   kubectl wait --namespace default \
     --for=condition=Ready helmreleases \
@@ -247,6 +291,14 @@ if [ "$EXAMPLE_DATA" = true ]; then
   kubectl wait --namespace default \
     --for=condition=Ready helmreleases \
     --timeout=$KUBECTL_WAIT_TIMEOUT example-httpbin-provider
+
+  kubectl wait --namespace default \
+    --for=condition=Ready helmreleases \
+    --timeout=$KUBECTL_WAIT_TIMEOUT openbao-instance
+
+  kubectl wait --namespace default \
+    --for=condition=Ready helmreleases \
+    --timeout=$KUBECTL_WAIT_TIMEOUT openbao-operator
 
 fi
 

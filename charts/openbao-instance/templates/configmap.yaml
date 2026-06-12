@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openbao-instance.fullname" . }}-config
+  labels:
+    {{- include "openbao-instance.labels" . | nindent 4 }}
+data:
+  config.hcl: |
+    {{- if .Values.config.devMode }}
+    # Dev mode is enabled via command line flag
+    {{- else }}
+    ui = true
+
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      tls_disable = true
+    }
+
+    storage "{{ .Values.config.storage.type }}" {
+      path = "{{ .Values.config.storage.path }}"
+    }
+    {{- end }}

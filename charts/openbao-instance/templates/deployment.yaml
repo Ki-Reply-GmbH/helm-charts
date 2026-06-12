@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openbao-instance.fullname" . }}
+  labels:
+    {{- include "openbao-instance.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "openbao-instance.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "openbao-instance.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "openbao-instance.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: openbao
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.config.devMode }}
+        command:
+          - bao
+          - server
+          - -dev
+          - -dev-root-token-id={{ .Values.config.devRootToken }}
+          - -dev-listen-address={{ .Values.config.devListenAddress }}
+        {{- else }}
+        command:
+          - bao
+          - server
+          - -config=/vault/config/config.hcl
+        {{- end }}
+        env:
+          - name: BAO_ADDR
+            value: "http://127.0.0.1:8200"
+          - name: SKIP_SETCAP
+            value: "true"
+        ports:
+          - name: http
+            containerPort: 8200
+            protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /v1/sys/health?standbyok=true&uninitcode=204&sealedcode=204
+            port: 8200
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /v1/sys/health?standbyok=true&perfstandbyok=true&uninitcode=204&sealedcode=204
+            port: 8200
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+          - name: config
+            mountPath: /vault/config
+            readOnly: true
+          {{- if not .Values.config.devMode }}
+          - name: data
+            mountPath: {{ .Values.config.storage.path }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "openbao-instance.fullname" . }}-config
+        {{- if not .Values.config.devMode }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "openbao-instance.fullname" . }}-data
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

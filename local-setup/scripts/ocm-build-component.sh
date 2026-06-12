@@ -24,7 +24,7 @@ REMOTE_REGISTRY="${REMOTE_REGISTRY:-ghcr.io/platform-mesh}"
 LOCAL_REGISTRY="${LOCAL_REGISTRY:-oci-registry-docker-registry.registry.svc.cluster.local}"
 
 # List of local component names (for version resolution)
-CUSTOM_LOCAL_COMPONENTS="account-operator,example-httpbin-operator,extension-manager-operator,iam-service,iam-ui,infra,kubernetes-graphql-gateway,platform-mesh-operator,platform-mesh-operator-components,platform-mesh-operator-infra-components,portal,rebac-authz-webhook,security-operator,terminal-controller-manager,virtual-workspaces"
+CUSTOM_LOCAL_COMPONENTS="account-operator,example-httpbin-operator,openbao-instance,openbao-operator,extension-manager-operator,iam-service,iam-ui,infra,kubernetes-graphql-gateway,platform-mesh-operator,platform-mesh-operator-components,platform-mesh-operator-infra-components,portal,rebac-authz-webhook,security-operator,terminal-controller-manager,virtual-workspaces"
 
 # Fixed version overrides (empty by default)
 FIXED_VERSION_PAIRS=""
@@ -154,6 +154,8 @@ resolve_component_versions() {
     get_component_version iam-ui github.com/platform-mesh/iam-ui charts/iam-ui IAM_UI_VERSION
     get_component_version marketplace-ui github.com/platform-mesh/marketplace-ui charts/marketplace-ui MARKETPLACE_UI_VERSION
     get_component_version example-httpbin-operator github.com/platform-mesh/example-httpbin-operator charts/example-httpbin-operator EXAMPLE_HTTPBIN_OPERATOR_VERSION
+    get_component_version openbao-instance github.com/platform-mesh/openbao-instance charts/openbao-instance OPENBAO_INSTANCE_VERSION
+    get_component_version openbao-operator github.com/platform-mesh/openbao-operator charts/openbao-operator OPENBAO_OPERATOR_VERSION
     get_component_version terminal-controller-manager github.com/platform-mesh/terminal-controller-manager charts/terminal-controller-manager TERMINAL_CONTROLLER_MANAGER_VERSION
 
     echo -e "${COL}[$(date '+%H:%M:%S')] Resolving third-party component versions...${COL_RES}"
@@ -167,6 +169,7 @@ resolve_component_versions() {
     export GATEWAY_API_VERSION=$(get_ocm_resource_version "github.com/kubernetes-sigs/gateway-api" '.items[0].element["version"]')
     export GATEWAY_API_COMMIT=$(get_ocm_resource_version "github.com/kubernetes-sigs/gateway-api" '.items[0].element.access["commit"]')
     export TRAEFIK_VERSION=$(get_ocm_resource_version "github.com/traefik/traefik" '.items[0].element["version"]')
+    export TRAEFIK_CHART_VERSION="$TRAEFIK_VERSION"
     export TRAEFIK_CRD_VERSION=$(get_ocm_resource_version "github.com/traefik/traefik" '.items[1].element["version"]')
     export CERT_MANAGER_VERSION=$(get_ocm_resource_version "github.com/cert-manager/cert-manager" '.items[0].element["version"]')
     export KCP_OPERATOR_CHART_VERSION=$(get_ocm_resource_version "github.com/kcp-dev/kcp-operator" '.items[0].element["version"]')
@@ -177,6 +180,10 @@ resolve_component_versions() {
     export TRAEFIK_IMAGE_VERSION=$(get_ocm_resource_version "github.com/traefik/traefik" '.items[] | select(.element.type == "ociImage" and .element.name == "image") | .element.version')
     export OPENFGA_IMAGE_VERSION=$(get_ocm_resource_version "github.com/openfga/openfga" '.items[] | select(.element.type == "ociImage" and .element.name == "image") | .element.version')
     export OPENFGA_POSTGRESQL_IMAGE_VERSION=$(get_ocm_resource_version "github.com/openfga/openfga" '.items[] | select(.element.type == "ociImage" and .element.name == "postgresql-image") | .element.version')
+    export CNPG_OPERATOR_CHART_VERSION=$(get_ocm_resource_version "github.com/cloudnative-pg/cloudnative-pg" '.items[] | select(.element.type == "helmChart") | .element.version')
+    export CNPG_OPERATOR_IMAGE_VERSION=$(get_ocm_resource_version "github.com/cloudnative-pg/cloudnative-pg" '.items[] | select(.element.type == "ociImage") | .element.version')
+    get_component_version keycloak-operator github.com/platform-mesh/keycloak-operator "" KEYCLOAK_OPERATOR_VERSION
+    get_component_version observability github.com/platform-mesh/observability "" OBSERVABILITY_VERSION
 
     echo -e "${COL}[$(date '+%H:%M:%S')] Finished resolving component versions${COL_RES}"
 }
@@ -220,6 +227,7 @@ build_final_component() {
         GATEWAY_API_VERSION="$GATEWAY_API_VERSION" \
         GATEWAY_API_COMMIT="$GATEWAY_API_COMMIT" \
         TRAEFIK_VERSION="$TRAEFIK_VERSION" \
+        TRAEFIK_CHART_VERSION="$TRAEFIK_CHART_VERSION" \
         TRAEFIK_CRD_VERSION="$TRAEFIK_CRD_VERSION" \
         CERT_MANAGER_VERSION="$CERT_MANAGER_VERSION" \
         PLATFORM_MESH_OPERATOR_INFRA_COMPONENTS_VERSION="$PLATFORM_MESH_OPERATOR_INFRA_COMPONENTS_VERSION" \
@@ -231,6 +239,10 @@ build_final_component() {
         TRAEFIK_IMAGE_VERSION="$TRAEFIK_IMAGE_VERSION" \
         OPENFGA_IMAGE_VERSION="$OPENFGA_IMAGE_VERSION" \
         OPENFGA_POSTGRESQL_IMAGE_VERSION="$OPENFGA_POSTGRESQL_IMAGE_VERSION" \
+        CNPG_OPERATOR_CHART_VERSION="$CNPG_OPERATOR_CHART_VERSION" \
+        CNPG_OPERATOR_IMAGE_VERSION="$CNPG_OPERATOR_IMAGE_VERSION" \
+        KEYCLOAK_OPERATOR_VERSION="$KEYCLOAK_OPERATOR_VERSION" \
+        OBSERVABILITY_VERSION="$OBSERVABILITY_VERSION" \
         TERMINAL_CONTROLLER_MANAGER_VERSION="$TERMINAL_CONTROLLER_MANAGER_VERSION"
 
     echo ""

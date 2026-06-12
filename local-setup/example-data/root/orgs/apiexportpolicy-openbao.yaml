@@ -1,0 +1,11 @@
+apiVersion: core.platform-mesh.io/v1alpha1
+kind: APIExportPolicy
+metadata:
+  name: openbao.apeiro.dev
+spec:
+  apiExportRef:
+    name: openbao.apeiro.dev
+    clusterPath: root:providers:openbao-provider
+
+  allowPathExpressions:
+    - :root:orgs:*

@@ -1,0 +1,19 @@
+apiVersion: apis.kcp.io/v1alpha1
+kind: APIExport
+metadata:
+  name: openbao.apeiro.dev
+  labels:
+    ui.platform-mesh.io/content-for: openbao.apeiro.dev
+spec:
+  latestResourceSchemas:
+  - v260505-c5b54c4.openbaotenants.openbao.apeiro.dev
+  permissionClaims:
+  - all: true
+    resource: namespaces
+  - all: true
+    resource: secrets
+  - all: true
+    resource: events
+  - all: true
+    group: core.kcp.io
+    resource: logicalclusters
