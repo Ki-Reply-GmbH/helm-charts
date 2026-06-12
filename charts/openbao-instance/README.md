@@ -4,11 +4,10 @@ Deploys OpenBao secrets management server in development mode.
 
 ## Purpose
 
-This chart deploys OpenBao in dev mode for local development and testing. It includes an init job that automatically configures Kubernetes authentication for the operator.
+This chart deploys OpenBao for local development and testing. It includes an init job that automatically configures Kubernetes authentication for the operator.
 
 ## Features
 
-- **Dev Mode**: Auto-unsealed, in-memory storage (data lost on pod restart)
 - **Kubernetes Auth Bootstrap**: Init job configures K8s authentication automatically
 - **Operator Ready**: Pre-configured for OpenBao operator integration
 - **Health Probes**: Liveness and readiness probes configured

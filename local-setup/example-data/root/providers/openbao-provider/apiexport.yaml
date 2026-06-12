@@ -4,3 +4,6 @@ metadata:
   name: openbao.apeiro.dev
   labels:
     ui.platform-mesh.io/content-for: openbao.apeiro.dev
+spec:
+  latestResourceSchemas:
+  - v260505-c5b54c4.openbaotenants.openbao.apeiro.dev

@@ -40,35 +40,11 @@ From the root of the helm-charts repository:
 
 ```sh
 # Full setup (recommended, deletes existing cluster and creates new one)
-task local-setup:prerelease:example-data
+task local-setup:example-data
 
 # Iterate on existing cluster (faster, preserves cluster state)
-task local-setup:prerelease:example-data:iterate
+task local-setup:example-data:iterate
 ```
-
-### Building the Operator Locally
-
-Since the operator image may not be available in a registry, you'll need to build it locally and load it into the Kind cluster:
-
-```bash
-# Navigate to operator directory
-cd /home/ldeppewsl/docs/openbao/platform-mesh/git/openbao-operator
-
-# Build the operator image
-make docker-build IMG=openbao-operator:local
-
-# Load image into Kind cluster (must be done BEFORE starting local-setup)
-kind load docker-image openbao-operator:local --name platform-mesh
-
-# Update Helm chart to use local image
-cd /home/ldeppewsl/docs/openbao/platform-mesh/git/helm-charts
-sed -i 's|registry: ghcr.io|registry: ""|' charts/openbao-operator/values.yaml
-sed -i 's|repository: platform-mesh/openbao-operator|repository: openbao-operator|' charts/openbao-operator/values.yaml
-sed -i 's|tag: "v0.1.0"|tag: "local"|' charts/openbao-operator/values.yaml
-sed -i 's|pullPolicy: IfNotPresent|pullPolicy: Never|' charts/openbao-operator/values.yaml
-```
-
-**Important:** Build and load the operator image **before** running `start.sh`, otherwise the operator pod will fail with ImagePullBackOff.
 
 ## Deployment Steps
 

@@ -49,10 +49,6 @@ spec:
                                                   "property": "metadata.name"
                                               },
                                               {
-                                                  "label": "Namespace",
-                                                  "property": "spec.namespace"
-                                              },
-                                              {
                                                   "label": "Auth Method",
                                                   "property": "status.access.authMethod"
                                               },
@@ -77,7 +73,7 @@ spec:
                                           },
                                           {
                                             "label": "OpenBao Namespace",
-                                            "property": "spec.namespace"
+                                            "property": "status.access.namespace"
                                           },
                                           {
                                             "label": "Phase",
@@ -106,10 +102,16 @@ spec:
                                                   "helpText": "Name of the tenant (lowercase alphanumeric with hyphens)"
                                               },
                                               {
-                                                  "label": "OpenBao Namespace",
-                                                  "property": "spec.namespace",
+                                                  "label": "Auth Secret Name",
+                                                  "property": "spec.auth.appRole.secretRef.name",
                                                   "required": true,
-                                                  "helpText": "OpenBao namespace to create for isolation"
+                                                  "helpText": "Name of the Kubernetes Secret where AppRole credentials (roleId, secretId) will be stored"
+                                              },
+                                              {
+                                                  "label": "Auth Secret Namespace",
+                                                  "property": "spec.auth.appRole.secretRef.namespace",
+                                                  "required": false,
+                                                  "helpText": "Namespace for the credentials secret (defaults to tenant namespace if empty)"
                                               }
                                           ]
                                       }
@@ -128,7 +130,7 @@ spec:
                                         "group": "openbao_apeiro_dev",
                                         "version": "v1",
                                         "kind": "OpenBaoTenant",
-                                        "query": "{ metadata { name } spec { namespace } }"
+                                        "query": "{ metadata { name } }"
                                     }
                                 },
                                 "context": {

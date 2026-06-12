@@ -1,0 +1,12 @@
+apiVersion: openbao.apeiro.dev/v1
+kind: OpenBaoTenant
+metadata:
+  name: my-app-secrets
+spec:
+  namespace: my-app-secrets
+  auth:
+    appRole:
+      enabled: true
+      secretRef:
+        name: my-app-approle
+        namespace: default

@@ -1,0 +1,351 @@
+apiVersion: apis.kcp.io/v1alpha1
+kind: APIResourceSchema
+metadata:
+  creationTimestamp: null
+  name: v260505-c5b54c4.openbaotenants.openbao.apeiro.dev
+spec:
+  group: openbao.apeiro.dev
+  names:
+    kind: OpenBaoTenant
+    listKind: OpenBaoTenantList
+    plural: openbaotenants
+    shortNames:
+    - obt
+    singular: openbaotenant
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - description: OpenBao namespace
+      jsonPath: .spec.namespace
+      name: Namespace
+      type: string
+    - description: Auth method
+      jsonPath: .status.access.authMethod
+      name: Auth
+      type: string
+    - description: Ready status
+      jsonPath: .status.ready
+      name: Ready
+      type: boolean
+    - description: Current phase
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      description: |-
+        OpenBaoTenant represents a tenant's isolated OpenBao namespace with admin authentication.
+        Once provisioned, tenants manage their own policies and secrets within their namespace.
+      properties:
+        apiVersion:
+          description: |-
+            APIVersion defines the versioned schema of this representation of an object.
+            Servers should convert recognized schemas to the latest internal value, and
+            may reject unrecognized values.
+            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+          type: string
+        kind:
+          description: |-
+            Kind is a string value representing the REST resource this object represents.
+            Servers may infer this from the endpoint the client submits requests to.
+            Cannot be updated.
+            In CamelCase.
+            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: OpenBaoTenantSpec defines the desired state of OpenBaoTenant
+          properties:
+            auth:
+              description: |-
+                Auth configures the authentication method for accessing the OpenBao namespace.
+                Choose either OIDC (for interactive/human access) or AppRole (for machine access).
+                Admin access is granted by default - tenants manage their own policies afterward.
+              properties:
+                appRole:
+                  description: |-
+                    AppRole configures AppRole authentication for non-interactive/machine access.
+                    The operator will create a secret with the AppRole credentials.
+                  properties:
+                    enabled:
+                      default: true
+                      description: Enabled enables AppRole authentication.
+                      type: boolean
+                    secretIdNumUses:
+                      default: 0
+                      description: SecretIdNumUses is the maximum number of times
+                        the SecretID can be used.
+                      type: integer
+                    secretIdTTL:
+                      default: 24h
+                      description: SecretIdTTL is the TTL for the generated SecretID.
+                      type: string
+                    secretRef:
+                      description: |-
+                        SecretRef specifies where the AppRole credentials should be stored.
+                        The operator will create this secret with roleId and secretId.
+                      properties:
+                        name:
+                          description: Name is the name of the secret to create.
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: |-
+                            Namespace is the namespace for the secret.
+                            If not specified, uses the workspace's default namespace.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    tokenMaxTTL:
+                      default: 24h
+                      description: TokenMaxTTL is the maximum TTL for tokens issued
+                        via AppRole.
+                      type: string
+                    tokenTTL:
+                      default: 1h
+                      description: TokenTTL is the TTL for tokens issued via AppRole.
+                      type: string
+                  required:
+                  - secretRef
+                  type: object
+                oidc:
+                  description: |-
+                    OIDC configures OIDC authentication for interactive access.
+                    Uses the Platform Mesh Keycloak for authentication.
+                  properties:
+                    allowedGroups:
+                      description: |-
+                        AllowedGroups specifies which Keycloak groups are allowed to authenticate.
+                        If empty, all authenticated users can access.
+                      items:
+                        type: string
+                      type: array
+                    clientId:
+                      description: ClientID is the OpenID Connect client ID in Keycloak
+                      type: string
+                    clientSecretRef:
+                      description: ClientSecretRef is a reference to the K8s Secret
+                        containing the client secret
+                      properties:
+                        name:
+                          description: Name is the name of the secret to create.
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: |-
+                            Namespace is the namespace for the secret.
+                            If not specified, uses the workspace's default namespace.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    enabled:
+                      default: true
+                      description: Enabled enables OIDC authentication.
+                      type: boolean
+                    keycloakUrl:
+                      description: |-
+                        KeycloakURL is the Keycloak discovery URL
+                        e.g., https://keycloak.example.com/realms/master
+                      type: string
+                  type: object
+              type: object
+              x-kubernetes-validations:
+              - message: exactly one of oidc or appRole must be specified
+                rule: (has(self.oidc) && !has(self.appRole)) || (!has(self.oidc) &&
+                  has(self.appRole))
+              - message: keycloakUrl is required when OIDC is enabled
+                rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.keycloakUrl)
+                  && size(self.oidc.keycloakUrl) > 0)'
+              - message: clientId is required when OIDC is enabled
+                rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.clientId)
+                  && size(self.oidc.clientId) > 0)'
+              - message: clientSecretRef.name is required when OIDC is enabled
+                rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.clientSecretRef)
+                  && size(self.oidc.clientSecretRef.name) > 0)'
+          required:
+          - auth
+          type: object
+        status:
+          description: OpenBaoTenantStatus defines the observed state of OpenBaoTenant
+          properties:
+            access:
+              description: Access contains information for accessing the tenant's
+                OpenBao namespace.
+              properties:
+                authMethod:
+                  description: AuthMethod is the configured auth method type (oidc
+                    or approle).
+                  type: string
+                authMountPoint:
+                  description: AuthMountPoint is the mount point of the auth method
+                    in OpenBao.
+                  type: string
+                kubeAuthRole:
+                  description: KubeAuthRole is the Kubernetes auth role (if applicable).
+                  type: string
+                namespace:
+                  description: Namespace is the OpenBao namespace associated with
+                    the tenant.
+                  type: string
+                oidcClientId:
+                  description: OIDCClientID is the Keycloak client ID (if using OIDC
+                    auth).
+                  type: string
+                openbaoUrl:
+                  description: OpenBaoURL is the URL to access OpenBao.
+                  type: string
+              type: object
+            appRoleConfigured:
+              description: AppRoleConfigured indicates if the AppRole auth backend
+                is configured
+              type: boolean
+            conditions:
+              description: Conditions represent the latest available observations
+                of the tenant's state.
+              items:
+                description: Condition contains details for one aspect of the current
+                  state of this API Resource.
+                properties:
+                  lastTransitionTime:
+                    description: |-
+                      lastTransitionTime is the last time the condition transitioned from one status to another.
+                      This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                    format: date-time
+                    type: string
+                  message:
+                    description: |-
+                      message is a human readable message indicating details about the transition.
+                      This may be an empty string.
+                    maxLength: 32768
+                    type: string
+                  observedGeneration:
+                    description: |-
+                      observedGeneration represents the .metadata.generation that the condition was set based upon.
+                      For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                      with respect to the current state of the instance.
+                    format: int64
+                    minimum: 0
+                    type: integer
+                  reason:
+                    description: |-
+                      reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                      Producers of specific condition types may define expected values and limitations for this field,
+                      and whether the values are considered a guaranteed API.
+                      The value should be a CamelCase string.
+                      This field may not be empty.
+                    maxLength: 1024
+                    minLength: 1
+                    pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                    type: string
+                  status:
+                    description: status of the condition, one of True, False, Unknown.
+                    enum:
+                    - "True"
+                    - "False"
+                    - Unknown
+                    type: string
+                  type:
+                    description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                    maxLength: 316
+                    pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                    type: string
+                required:
+                - lastTransitionTime
+                - message
+                - reason
+                - status
+                - type
+                type: object
+              type: array
+              x-kubernetes-list-map-keys:
+              - type
+              x-kubernetes-list-type: map
+            message:
+              description: Message is a human-readable status message.
+              type: string
+            namespaceReady:
+              description: NamespaceReady indicates if the VaultNamespace is ready
+              type: boolean
+            observedGeneration:
+              description: ObservedGeneration is the generation of the spec observed
+                by the operator.
+              format: int64
+              type: integer
+            phase:
+              description: Phase is the current phase of tenant provisioning.
+              type: string
+            policiesReady:
+              description: PoliciesReady indicates if the VaultPolicy is ready
+              type: boolean
+            ready:
+              description: Ready indicates whether the OpenBao tenant is fully provisioned.
+              type: boolean
+            resources:
+              description: Resources contains information about provisioned Crossplane
+                resources.
+              properties:
+                appRoleSecretRef:
+                  description: |-
+                    AppRoleSecretRef references the created K8s Secret with AppRole credentials
+                    (role-id and secret-id).
+                  properties:
+                    apiVersion:
+                      description: API version of the referent.
+                      type: string
+                    fieldPath:
+                      description: |-
+                        If referring to a piece of an object instead of an entire object, this string
+                        should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                        For example, if the object reference is to a container within a pod, this would take on a value like:
+                        "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                        the event) or if no container name is specified "spec.containers[2]" (container with
+                        index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                        referencing a part of an object.
+                      type: string
+                    kind:
+                      description: |-
+                        Kind of the referent.
+                        More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                      type: string
+                    name:
+                      description: |-
+                        Name of the referent.
+                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      type: string
+                    namespace:
+                      description: |-
+                        Namespace of the referent.
+                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                      type: string
+                    resourceVersion:
+                      description: |-
+                        Specific resourceVersion to which this reference is made, if any.
+                        More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                      type: string
+                    uid:
+                      description: |-
+                        UID of the referent.
+                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                      type: string
+                  type: object
+                  x-kubernetes-map-type: atomic
+                authMethodPath:
+                  description: AuthMethodPath is the auth method mount path in OpenBao.
+                  type: string
+                openbaoNamespace:
+                  description: OpenBaoNamespace is the provisioned namespace path
+                    in OpenBao.
+                  type: string
+              type: object
+          type: object
+      type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -21,7 +21,16 @@ task local-setup:example-data
 task local-setup:example-data:iterate
 ```
 
+## access platform mesh
+go to https://portal.localhost:8443/
+
+
 ## Unsealing
+Check status
+```bash
+kubectl exec -n openbao-provider deployment/openbao-instance -- bao status
+```
+
 ```bash
 flux reconcile helmrelease openbao-instance -n default
 ```
@@ -36,3 +45,10 @@ flux reconcile helmrelease openbao-instance -n default --with-source
 ```bash
 helm upgrade openbao-instance ./charts/openbao-instance -n openbao-provider
 ```
+
+# bug fixing
+
+## Openbao-operator IP hard coded
+You might need to set your local cluster IP of KCP correctly here:
+
+local-setup/kustomize/components/openbao-provider/helmreleases.yaml (line 63)

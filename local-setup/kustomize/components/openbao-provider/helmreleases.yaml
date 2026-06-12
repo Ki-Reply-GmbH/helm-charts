@@ -52,8 +52,17 @@ spec:
   targetNamespace: openbao-provider
   timeout: 15m # use 15m when stable
   values:
+    leaderElection:
+      enabled: false
     operator:
       openbaoAddress: "http://openbao.openbao-provider.svc:8200"
       openbaoAuthMethod: "kubernetes"
       openbaoK8sRole: "openbao-operator"
       apiexportEndpointsliceName: "openbao.apeiro.dev"
+    hostAliases:
+      - ip: "10.96.188.4"
+        hostnames:
+          - "localhost"
+          - "portal.localhost"
+          - "kcp.localhost"
+          - "root.kcp.localhost"

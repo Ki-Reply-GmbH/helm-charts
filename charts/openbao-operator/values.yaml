@@ -56,6 +56,18 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
+# Host aliases injected into the operator pod's /etc/hosts.
+# Required to resolve KCP virtual workspace hostnames (e.g. root.kcp.localhost)
+# from inside the cluster. Set the Traefik service ClusterIP as the target.
+# Example for local-setup:
+#   - ip: "10.96.188.4"
+#     hostnames:
+#       - "localhost"
+#       - "portal.localhost"
+#       - "kcp.localhost"
+#       - "root.kcp.localhost"
+hostAliases: []
+
 # Metrics configuration
 metrics:
   enable: true
