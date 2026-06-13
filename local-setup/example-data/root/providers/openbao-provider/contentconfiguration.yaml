@@ -89,7 +89,7 @@ spec:
                                           },
                                           {
                                             "label": "OpenBao URL",
-                                            "property": "status.access.openbaoURL"
+                                            "property": "status.access.openbaoUrl"
                                           }
                                         ]
                                       },

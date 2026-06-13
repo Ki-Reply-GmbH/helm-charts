@@ -3,7 +3,7 @@ name: openbao-instance
 description: OpenBao secrets management server for local development (dev mode)
 type: application
 version: 0.1.0
-appVersion: "2.1.0"
+appVersion: "2.5.4"
 keywords:
   - openbao
   - vault

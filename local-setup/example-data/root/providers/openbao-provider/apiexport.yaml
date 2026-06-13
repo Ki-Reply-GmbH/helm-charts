@@ -7,3 +7,13 @@ metadata:
 spec:
   latestResourceSchemas:
   - v260505-c5b54c4.openbaotenants.openbao.apeiro.dev
+  permissionClaims:
+  - all: true
+    resource: namespaces
+  - all: true
+    resource: secrets
+  - all: true
+    resource: events
+  - all: true
+    group: core.kcp.io
+    resource: logicalclusters

@@ -1,3 +1,11 @@
+# Warning - Outdated
+
+Don't use this, it is heavely outdated. It was originally written whhen the prerelease workflow used and not a loca OCI registry. The approach and code has changed a lot since  then.
+
+Some sections were updated, most is still outdated!
+
+Read README_LOCAL_SETUP.md instead!
+
 # OpenBao Provider - Local Setup Guide
 
 ## Overview

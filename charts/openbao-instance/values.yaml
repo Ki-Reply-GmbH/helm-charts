@@ -5,7 +5,7 @@ replicaCount: 1
 image:
   registry: docker.io
   repository: openbao/openbao
-  tag: "2.1.0"
+  tag: "2.5.4"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -41,7 +41,7 @@ initJob:
   image:
     registry: docker.io
     repository: openbao/openbao
-    tag: "2.1.0"
+    tag: "2.5.4"
   backoffLimit: 5
   restartPolicy: Never
   resources:
