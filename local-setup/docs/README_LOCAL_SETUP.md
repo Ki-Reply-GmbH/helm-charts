@@ -25,6 +25,19 @@ Right at start you need to confirm the deletion of "platform-mesh" kind cluster 
 task local-setup:example-data:iterate
 ```
 
+## OCM pin precheck (automatic)
+For non-prerelease local setup tasks, an OCM precheck now runs automatically before `start.sh`.
+It validates that the pinned version in `local-setup/kustomize/components/ocm/component.yaml` still exists in GHCR.
+
+If the version was removed, setup stops early and prints the latest available version plus a hint to run:
+
+```bash
+task bump-local-setup-component-version
+task local-setup:example-data
+```
+
+For `--prerelease` tasks, this precheck is skipped.
+
 ## access platform mesh
 go to https://portal.localhost:8443/
 
