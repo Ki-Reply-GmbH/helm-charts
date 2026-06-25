@@ -56,7 +56,10 @@ spec:
             done
             echo "OpenBao is reachable!"
 
-            INITIALIZED=$(bao status -format=json 2>/dev/null | grep '"initialized"' | grep -o 'true\|false' || true)
+            until INITIALIZED=$(bao status -format=json 2>/dev/null | grep '"initialized"' | grep -o 'true\|false' || true) && [ -n "$INITIALIZED" ]; do
+              echo "  Waiting for OpenBao status..."
+              sleep 2
+            done
 
             K8S_API="https://kubernetes.default.svc:443"
             SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -148,7 +151,7 @@ spec:
             fi
 
             echo "Waiting for OpenBao to be active (initialized + unsealed)..."
-            until bao status -format=json 2>/dev/null | grep '"sealed": false' >/dev/null 2>&1; do
+            until SEALED=$(bao status -format=json 2>/dev/null | grep '"sealed"' | grep -o 'true\|false' || true) && [ "$SEALED" = "false" ]; do
               echo "  Waiting for unseal..."
               sleep 2
             done
