@@ -37,6 +37,74 @@ usage() {
   exit 1
 }
 
+is_ocm_030_fallback() {
+  if [ "$PRERELEASE" = true ]; then
+    return 1
+  fi
+
+  local component_version
+  component_version=$(yq '.spec.semver' "$SCRIPT_DIR/../kustomize/components/ocm/component.yaml" 2>/dev/null || true)
+  [ "$component_version" = "0.3.0" ]
+}
+
+timeout_to_seconds() {
+  local timeout="$1"
+  case "$timeout" in
+    *s) echo "${timeout%s}" ;;
+    *m) echo "$((${timeout%m} * 60))" ;;
+    *) echo "$timeout" ;;
+  esac
+}
+
+patch_ocm_030_kcp_ports() {
+  is_ocm_030_fallback || return 0
+
+  echo -e "${COL}[$(date '+%H:%M:%S')] Applying Platform Mesh OCM 0.3.0 KCP port fallback ${COL_RES}"
+  for _ in $(seq 1 120); do
+    if kubectl get rootshard -n platform-mesh-system root >/dev/null 2>&1 &&
+       kubectl get frontproxy -n platform-mesh-system frontproxy >/dev/null 2>&1; then
+      kubectl patch rootshard -n platform-mesh-system root --type merge \
+        -p '{"spec":{"external":{"hostname":"localhost","port":8443}}}' >/dev/null
+      kubectl patch frontproxy -n platform-mesh-system frontproxy --type merge \
+        -p '{"spec":{"external":{"hostname":"localhost","port":6443}}}' >/dev/null
+      return 0
+    fi
+    sleep 2
+  done
+
+  echo -e "${YELLOW}[$(date '+%H:%M:%S')] Timed out waiting for KCP resources to apply OCM 0.3.0 port fallback${COL_RES}"
+}
+
+wait_for_platformmesh_ready() {
+  if ! is_ocm_030_fallback; then
+    kubectl wait --namespace platform-mesh-system \
+      --for=condition=Ready platformmesh \
+      --timeout=$KUBECTL_WAIT_TIMEOUT platform-mesh
+    return
+  fi
+
+  local timeout_seconds
+  timeout_seconds=$(timeout_to_seconds "$KUBECTL_WAIT_TIMEOUT")
+  local deadline=$((SECONDS + timeout_seconds))
+
+  # Older kcp may need several reconciles while workspace APIs become served.
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    if kubectl wait --namespace platform-mesh-system \
+      --for=condition=Ready platformmesh \
+      --timeout=30s platform-mesh; then
+      return 0
+    fi
+
+    kubectl annotate platformmesh -n platform-mesh-system platform-mesh \
+      local-setup.platform-mesh.io/reconcile-at="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      --overwrite >/dev/null 2>&1 || true
+  done
+
+  kubectl wait --namespace platform-mesh-system \
+    --for=condition=Ready platformmesh \
+    --timeout=1s platform-mesh
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --prerelease) PRERELEASE=true ;;
@@ -255,11 +323,11 @@ else
   fi
 fi
 
+patch_ocm_030_kcp_ports
+
 # wait for kind: PlatformMesh resource to become ready
 echo -e "${COL}[$(date '+%H:%M:%S')] Waiting for kind: PlatformMesh resource to become ready ${COL_RES}"
-kubectl wait --namespace platform-mesh-system \
-  --for=condition=Ready platformmesh \
-  --timeout=$KUBECTL_WAIT_TIMEOUT platform-mesh
+wait_for_platformmesh_ready
 
 echo -e "${COL}[$(date '+%H:%M:%S')] Preparing KCP Secrets for admin access ${COL_RES}"
 $SCRIPT_DIR/createKcpAdminKubeconfig.sh

@@ -6,10 +6,8 @@ spec:
   repositoryRef:
     name: platform-mesh
   component: github.com/platform-mesh/platform-mesh
-  # potentially outdated
-  semver: 0.3.0-build.1095
-  # new 
-  # semver: 0.4.0-build.518
+  # old release
+  semver: 0.3.0
   interval: 1m
   ocmConfig:
     - kind: Repository
