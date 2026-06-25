@@ -4,6 +4,5 @@ kind: Component
 resources:
   - helmrepository.yaml
   - helmreleases.yaml
-  - openbao-httproute.yaml
   # bypass OCM resources since local OCI registry is used instead
   #- resources.yaml

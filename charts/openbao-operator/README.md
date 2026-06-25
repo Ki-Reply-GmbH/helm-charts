@@ -38,6 +38,7 @@ helm install openbao-operator charts/openbao-operator \
 operator:
   # OpenBao connection
   openbaoAddress: "http://openbao.openbao-provider.svc:8200"
+  openbaoDisplayUrl: ""            # Optional browser-facing URL published in tenant status
   openbaoAuthMethod: "kubernetes"  # kubernetes or token
   openbaoK8sRole: "openbao-operator"
 
