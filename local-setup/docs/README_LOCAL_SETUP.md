@@ -98,17 +98,21 @@ secret-namespace: default
 # Use OpenBao
 if OpenBao Tenant is ready in Platform Mesh click on it, you should see an URL like http://openbao.openbao-provider.svc:8200 and also your namespace.
 
-To actuall use OpenBao, you need to port forward it.
+To use OpenBao in the local kind setup, open the local Gateway route in your browser:
+
+https://openbao.services.portal.localhost:8443/ui
+
+There you need to authenticate.
+
+Your namespace is orgs/<organisation>/<user-account>, e.g something like orgs/test/user1.
+
+If the Gateway route is not available, use port-forwarding as a fallback:
 
 ```bash
 kubectl port-forward svc/openbao -n openbao-provider 8200:8200
 ```
 
 After that, go to http://localhost:8200/ui in your browser.
-
-There you need to authenticate.
-
-Your namespace is orgs/<organisation>/<user-account>, e.g something like orgs/test/user1.
 
 You must also retrieve your token:
 
@@ -133,6 +137,13 @@ Your root-token will have changed, you need to retrieve it again! The user accou
 
 
 ## Unsealing
+### retrieve unseal keal
+```bash
+kubectl get secret openbao-unseal-key -n openbao-provider -o jsonpath='{.data.key}' | base64 -d
+```
+In this local setup, OpenBao is initialized with 1 key share and threshold 1, so that value is your full unseal key / unseal key portion.
+
+###
 Check status
 ```bash
 kubectl exec -n openbao-provider deployment/openbao-instance -- bao status
