@@ -110,8 +110,8 @@ spec:
                                               {
                                                   "label": "Auth Secret Namespace",
                                                   "property": "spec.auth.appRole.secretRef.namespace",
-                                                  "required": false,
-                                                  "helpText": "Namespace for the credentials secret (defaults to tenant namespace if empty)"
+                                                  "required": true,
+                                                  "helpText": "Recommended for local setup: default. Namespace where the AppRole credentials Secret will be stored"
                                               }
                                           ]
                                       }
