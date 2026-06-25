@@ -19,6 +19,8 @@ imagePullSecrets: []
 operator:
   # OpenBao connection settings
   openbaoAddress: "http://openbao.openbao-provider.svc:8200"
+  # Browser-facing OpenBao URL published in tenant status. Defaults to openbaoAddress when empty.
+  openbaoDisplayUrl: ""
   openbaoAuthMethod: "kubernetes"  # kubernetes or token
   openbaoK8sRole: "openbao-operator"
   openbaoK8sMountPath: "kubernetes"

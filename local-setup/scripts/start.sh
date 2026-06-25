@@ -340,6 +340,10 @@ fi
 
 if [ "$EXAMPLE_DATA" = true ]; then
 
+  echo -e "${COL}[$(date '+%H:%M:%S')] Installing OpenBao local HTTPRoute ${COL_RES}"
+  kubectl wait --for=condition=Established crd/httproutes.gateway.networking.k8s.io --timeout=$KUBECTL_WAIT_TIMEOUT
+  kubectl apply -f $SCRIPT_DIR/../kustomize/components/openbao-provider/openbao-httproute.yaml
+
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl create-workspace providers --type=root:providers --ignore-existing --server="https://localhost:8443/clusters/root"
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl create-workspace httpbin-provider --type=root:provider --ignore-existing --server="https://localhost:8443/clusters/root:providers"
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl apply -k $SCRIPT_DIR/../example-data/root/providers/httpbin-provider --server="https://localhost:8443/clusters/root:providers:httpbin-provider"
