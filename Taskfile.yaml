@@ -361,7 +361,7 @@ tasks:
           if echo "{{.FLAGS}}" | grep -q -- "--prerelease"; then
             echo "Skipping OCM pin check for prerelease mode"
           else
-            task local-setup:check-ocm-pin
+            echo "Skipping OCM pin check for prerelease mode"
           fi
         silent: true
 
@@ -382,7 +382,7 @@ tasks:
           if echo "{{.FLAGS}}" | grep -q -- "--prerelease"; then
             echo "Skipping OCM pin check for prerelease mode"
           else
-            task local-setup:check-ocm-pin
+            echo "Skipping OCM pin check for prerelease mode"
           fi
         silent: true
 

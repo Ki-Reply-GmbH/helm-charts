@@ -51,4 +51,12 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts/token
+  resourceNames:
+  - {{ include "openbao-operator.serviceAccountName" . }}
+  verbs:
+  - create
 {{- end }}

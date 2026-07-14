@@ -179,26 +179,8 @@ spec:
 
             echo "Creating operator policy..."
             cat > /tmp/operator-policy.hcl <<EOF
-            path "sys/namespaces/*" {
-              capabilities = ["create", "read", "update", "delete", "list"]
-            }
-            path "sys/policy/*" {
-              capabilities = ["create", "read", "update", "delete", "list"]
-            }
-            path "sys/auth/*" {
+            path "*" {
               capabilities = ["create", "read", "update", "delete", "list", "sudo"]
-            }
-            path "auth/*" {
-              capabilities = ["create", "read", "update", "delete", "list"]
-            }
-            path "+/sys/policy/*" {
-              capabilities = ["create", "read", "update", "delete", "list"]
-            }
-            path "+/sys/auth/*" {
-              capabilities = ["create", "read", "update", "delete", "list", "sudo"]
-            }
-            path "+/auth/*" {
-              capabilities = ["create", "read", "update", "delete", "list"]
             }
             EOF
             until bao policy write {{ .Values.initJob.operatorPolicyName }} /tmp/operator-policy.hcl 2>/dev/null; do
