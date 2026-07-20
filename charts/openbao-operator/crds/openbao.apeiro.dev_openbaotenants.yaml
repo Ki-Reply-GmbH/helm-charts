@@ -4,21 +4,26 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: openbaotenants.openbao.apeiro.dev
+  name: openbaonamespaces.openbao.apeiro.dev
 spec:
   group: openbao.apeiro.dev
   names:
-    kind: OpenBaoTenant
-    listKind: OpenBaoTenantList
-    plural: openbaotenants
+    kind: OpenBaoNamespace
+    listKind: OpenBaoNamespaceList
+    plural: openbaonamespaces
     shortNames:
-    - obt
-    singular: openbaotenant
+    - obn
+    singular: openbaonamespace
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - description: OpenBao namespace
-      jsonPath: .spec.namespace
+    - description: Parent namespace
+      jsonPath: .spec.parentRef.name
+      name: Parent
+      priority: 1
+      type: string
+    - description: OpenBao namespace path
+      jsonPath: .status.access.namespace
       name: Namespace
       type: string
     - description: Auth method
@@ -29,6 +34,11 @@ spec:
       jsonPath: .status.ready
       name: Ready
       type: boolean
+    - description: Nesting depth
+      jsonPath: .status.depth
+      name: Depth
+      priority: 1
+      type: integer
     - description: Current phase
       jsonPath: .status.phase
       name: Phase
@@ -40,8 +50,8 @@ spec:
     schema:
       openAPIV3Schema:
         description: |-
-          OpenBaoTenant represents a tenant's isolated OpenBao namespace with admin authentication.
-          Once provisioned, tenants manage their own policies and secrets within their namespace.
+          OpenBaoNamespace is used to represent an isolated OpenBao namespace with admin authentication.
+          Hierarchical nesting is supported via the parentRef field.
         properties:
           apiVersion:
             description: |-
@@ -61,18 +71,15 @@ spec:
           metadata:
             type: object
           spec:
-            description: OpenBaoTenantSpec defines the desired state of OpenBaoTenant
+            description: OpenBaoNamespaceSpec defines the desired state of OpenBaoNamespace.
             properties:
               auth:
-                description: |-
-                  Auth configures the authentication method for accessing the OpenBao namespace.
-                  Choose either OIDC (for interactive/human access) or AppRole (for machine access).
-                  Admin access is granted by default - tenants manage their own policies afterward.
+                description: Auth configures the authentication method for accessing
+                  the OpenBao namespace.
                 properties:
                   appRole:
-                    description: |-
-                      AppRole configures AppRole authentication for non-interactive/machine access.
-                      The operator will create a secret with the AppRole credentials.
+                    description: AppRole configures AppRole authentication for machine
+                      access.
                     properties:
                       enabled:
                         default: true
@@ -88,21 +95,20 @@ spec:
                         description: SecretIdTTL is the TTL for the generated SecretID.
                         type: string
                       secretRef:
-                        description: |-
-                          SecretRef specifies where the AppRole credentials should be stored.
-                          The operator will create this secret with roleId and secretId.
+                        description: SecretRef specifies where the AppRole credentials
+                          are to be stored.
                         properties:
                           name:
                             description: Name is the name of the secret to create.
                             minLength: 1
                             type: string
                           namespace:
-                            description: |-
-                              Namespace is the namespace for the secret.
-                              If not specified, uses the workspace's default namespace.
+                            description: Namespace is the namespace of the secret.
+                            minLength: 1
                             type: string
                         required:
                         - name
+                        - namespace
                         type: object
                       tokenMaxTTL:
                         default: 24h
@@ -116,52 +122,105 @@ spec:
                     required:
                     - secretRef
                     type: object
+                  jwt:
+                    description: JWT configures JWT authentication for machine access
+                      using an OIDC/JWKS provider.
+                    properties:
+                      boundAudiences:
+                        description: BoundAudiences is the expected audiences of the
+                          JWT.
+                        items:
+                          type: string
+                        minItems: 1
+                        type: array
+                      boundIssuer:
+                        description: BoundIssuer is the expected issuer of the JWT.
+                        minLength: 1
+                        type: string
+                      boundSubject:
+                        description: BoundSubject is the expected subject of the JWT.
+                        type: string
+                      enabled:
+                        default: true
+                        description: Enabled enables JWT authentication.
+                        type: boolean
+                      jwksUrl:
+                        description: JWKSURL is the JWKS URL for the JWT issuer.
+                        type: string
+                      jwtValidationPubkeys:
+                        description: JWTValidationPubkeys is a list of PEM-encoded
+                          public keys to validate the JWT signature offline.
+                        items:
+                          type: string
+                        type: array
+                      oidcDiscoveryCaPem:
+                        description: OIDCDiscoveryCAPem is the PEM-encoded CA cert
+                          used to validate the OIDC discovery URL.
+                        type: string
+                      oidcDiscoveryUrl:
+                        description: OIDCDiscoveryURL is the OIDC Discovery URL for
+                          the JWT issuer.
+                        type: string
+                      tokenMaxTTL:
+                        default: 24h
+                        description: TokenMaxTTL is the maximum TTL for tokens issued
+                          via JWT.
+                        type: string
+                      tokenTTL:
+                        default: 1h
+                        description: TokenTTL is the TTL for tokens issued via JWT.
+                        type: string
+                      userClaim:
+                        default: sub
+                        description: UserClaim is the claim used to uniquely identify
+                          the user.
+                        type: string
+                    required:
+                    - boundAudiences
+                    - boundIssuer
+                    type: object
                   oidc:
-                    description: |-
-                      OIDC configures OIDC authentication for interactive access.
-                      Uses the Platform Mesh Keycloak for authentication.
+                    description: OIDC configures OIDC authentication for interactive
+                      access.
                     properties:
                       allowedGroups:
-                        description: |-
-                          AllowedGroups specifies which Keycloak groups are allowed to authenticate.
-                          If empty, all authenticated users can access.
+                        description: AllowedGroups specifies which Keycloak groups
+                          are allowed to authenticate.
                         items:
                           type: string
                         type: array
                       clientId:
-                        description: ClientID is the OpenID Connect client ID in Keycloak
+                        description: ClientID is the OpenID Connect client ID in Keycloak.
                         type: string
                       clientSecretRef:
                         description: ClientSecretRef is a reference to the K8s Secret
-                          containing the client secret
+                          containing the client secret.
                         properties:
                           name:
                             description: Name is the name of the secret to create.
                             minLength: 1
                             type: string
                           namespace:
-                            description: |-
-                              Namespace is the namespace for the secret.
-                              If not specified, uses the workspace's default namespace.
+                            description: Namespace is the namespace of the secret.
+                            minLength: 1
                             type: string
                         required:
                         - name
+                        - namespace
                         type: object
                       enabled:
                         default: true
                         description: Enabled enables OIDC authentication.
                         type: boolean
                       keycloakUrl:
-                        description: |-
-                          KeycloakURL is the Keycloak discovery URL
-                          e.g., https://keycloak.example.com/realms/master
+                        description: KeycloakURL is the Keycloak discovery URL.
                         type: string
                     type: object
                 type: object
                 x-kubernetes-validations:
-                - message: exactly one of oidc or appRole must be specified
-                  rule: (has(self.oidc) && !has(self.appRole)) || (!has(self.oidc)
-                    && has(self.appRole))
+                - message: exactly one of oidc, appRole, or jwt must be specified
+                  rule: '(has(self.oidc) ? 1 : 0) + (has(self.appRole) ? 1 : 0) +
+                    (has(self.jwt) ? 1 : 0) == 1'
                 - message: keycloakUrl is required when OIDC is enabled
                   rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.keycloakUrl)
                     && size(self.oidc.keycloakUrl) > 0)'
@@ -171,60 +230,82 @@ spec:
                 - message: clientSecretRef.name is required when OIDC is enabled
                   rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.clientSecretRef)
                     && size(self.oidc.clientSecretRef.name) > 0)'
-              namespace:
+                - message: exactly one of oidcDiscoveryUrl, jwksUrl, or jwtValidationPubkeys
+                    must be provided when JWT is enabled
+                  rule: '!has(self.jwt) || !self.jwt.enabled || ((has(self.jwt.oidcDiscoveryUrl)
+                    && size(self.jwt.oidcDiscoveryUrl) > 0 ? 1 : 0) + (has(self.jwt.jwksUrl)
+                    && size(self.jwt.jwksUrl) > 0 ? 1 : 0) + (has(self.jwt.jwtValidationPubkeys)
+                    && size(self.jwt.jwtValidationPubkeys) > 0 ? 1 : 0) == 1)'
+              openBaoNamespace:
                 description: |-
-                  Namespace is the name of the OpenBao namespace to create.
-                  This will be the tenant's isolated space in OpenBao.
+                  OpenBaoNamespace is the desired namespace segment name in OpenBao.
+                  Required when parentRef is set; ignored for root-level namespaces.
                 maxLength: 63
-                minLength: 1
-                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
                 type: string
-              workspaceRef:
-                description: WorkspaceRef references the KCP workspace that owns this
-                  tenant.
+              parentRef:
+                description: |-
+                  ParentRef is an optional reference to a parent OpenBaoNamespace CR.
+                  When omitted, the namespace path is derived from the kcp workspace path (root-level behavior).
                 properties:
                   name:
-                    description: Name is the KCP workspace name
+                    description: Name is the metadata.name of the parent OpenBaoNamespace
+                      CR.
+                    maxLength: 253
                     minLength: 1
                     type: string
                 required:
                 - name
                 type: object
-                x-kubernetes-validations:
-                - message: workspaceRef is immutable
-                  rule: self == oldSelf
             required:
             - auth
             type: object
+            x-kubernetes-validations:
+            - message: openBaoNamespace is required when parentRef is set
+              rule: '!has(self.parentRef) || (has(self.openBaoNamespace) && size(self.openBaoNamespace)
+                > 0)'
+            - message: parentRef is immutable once set
+              rule: '!has(oldSelf.parentRef) || (has(self.parentRef) && self.parentRef
+                == oldSelf.parentRef)'
+            - message: openBaoNamespace is immutable once set
+              rule: '!has(oldSelf.openBaoNamespace) || (has(self.openBaoNamespace)
+                && self.openBaoNamespace == oldSelf.openBaoNamespace)'
           status:
-            description: OpenBaoTenantStatus defines the observed state of OpenBaoTenant
+            description: OpenBaoNamespaceStatus defines the observed state of OpenBaoNamespace.
             properties:
               access:
-                description: Access contains information for accessing the tenant's
-                  OpenBao namespace.
+                description: Access contains information for accessing the namespace.
                 properties:
                   authMethod:
-                    description: AuthMethod is the configured auth method type (oidc
-                      or approle).
+                    description: AuthMethod is the configured auth method type.
+                    type: string
+                  authMountPoint:
+                    description: AuthMountPoint is the mount point of the auth method
+                      in OpenBao.
                     type: string
                   kubeAuthRole:
-                    description: KubeAuthRole is the Kubernetes auth role (if applicable).
+                    description: KubeAuthRole is the Kubernetes auth role.
+                    type: string
+                  namespace:
+                    description: Namespace is the OpenBao namespace associated with
+                      this resource.
                     type: string
                   oidcClientId:
-                    description: OIDCClientID is the Keycloak client ID (if using
-                      OIDC auth).
+                    description: OIDCClientID is the Keycloak client ID.
                     type: string
                   openbaoUrl:
-                    description: OpenBaoURL is the URL to access OpenBao.
+                    description: OpenBaoUrl is the URL to access OpenBao.
                     type: string
                 type: object
-              appRoleConfigured:
-                description: AppRoleConfigured indicates if the AppRole auth backend
-                  is configured
-                type: boolean
+              children:
+                description: Children lists the names of OpenBaoNamespace CRs that
+                  reference this namespace as their parent.
+                items:
+                  type: string
+                type: array
               conditions:
                 description: Conditions represent the latest available observations
-                  of the tenant's state.
+                  of the namespace's state.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -283,34 +364,41 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              depth:
+                description: |-
+                  Depth is the resolved depth of this namespace in the hierarchy.
+                  0 = root (no parentRef), 1 = direct child, etc.
+                format: int32
+                minimum: 0
+                type: integer
               message:
                 description: Message is a human-readable status message.
                 type: string
-              namespaceReady:
-                description: NamespaceReady indicates if the VaultNamespace is ready
-                type: boolean
               observedGeneration:
-                description: ObservedGeneration is the generation of the spec observed
-                  by the operator.
+                description: ObservedGeneration is the generation of the spec last
+                  observed by the controller.
                 format: int64
                 type: integer
               phase:
-                description: Phase is the current phase of tenant provisioning.
+                description: Phase is the current phase of namespace provisioning.
+                enum:
+                - Pending
+                - CreatingNamespace
+                - ConfiguringAuth
+                - Ready
+                - Failed
                 type: string
-              policiesReady:
-                description: PoliciesReady indicates if the VaultPolicy is ready
-                type: boolean
               ready:
-                description: Ready indicates whether the OpenBao tenant is fully provisioned.
+                description: Ready indicates whether the OpenBao namespace is fully
+                  provisioned.
                 type: boolean
               resources:
-                description: Resources contains information about provisioned Crossplane
+                description: Resources contains information about provisioned OpenBao
                   resources.
                 properties:
                   appRoleSecretRef:
-                    description: |-
-                      AppRoleSecretRef references the created K8s Secret with AppRole credentials
-                      (role-id and secret-id).
+                    description: AppRoleSecretRef references the created K8s Secret
+                      with AppRole credentials.
                     properties:
                       apiVersion:
                         description: API version of the referent.
@@ -362,6 +450,9 @@ spec:
                 type: object
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: root OpenBaoNamespace (without parentRef) must be named 'default'
+          rule: has(self.spec.parentRef) || self.metadata.name == 'default'
     served: true
     storage: true
     subresources:

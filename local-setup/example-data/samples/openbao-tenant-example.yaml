@@ -1,5 +1,5 @@
 apiVersion: openbao.apeiro.dev/v1
-kind: OpenBaoTenant
+kind: OpenBaoNamespace
 metadata:
   name: example-tenant
 spec:

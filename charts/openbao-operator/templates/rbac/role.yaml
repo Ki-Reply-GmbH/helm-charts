@@ -28,7 +28,7 @@ rules:
 - apiGroups:
   - openbao.apeiro.dev
   resources:
-  - openbaotenants
+  - openbaonamespaces
   verbs:
   - create
   - delete
@@ -40,13 +40,13 @@ rules:
 - apiGroups:
   - openbao.apeiro.dev
   resources:
-  - openbaotenants/finalizers
+  - openbaonamespaces/finalizers
   verbs:
   - update
 - apiGroups:
   - openbao.apeiro.dev
   resources:
-  - openbaotenants/status
+  - openbaonamespaces/status
   verbs:
   - get
   - patch

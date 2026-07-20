@@ -46,9 +46,9 @@ spec:
         {{- end }}
         - --health-probe-bind-address={{ .Values.healthProbe.bindAddress }}
         - --openbao-address={{ .Values.operator.openbaoAddress }}
-        #{{- if .Values.operator.openbaoDisplayUrl }}
-        #- --openbao-display-url={{ .Values.operator.openbaoDisplayUrl }}
-        #{{- end }}
+        {{- if .Values.operator.openbaoDisplayUrl }}
+        - --openbao-display-url={{ .Values.operator.openbaoDisplayUrl }}
+        {{- end }}
         - --openbao-auth-method={{ .Values.operator.openbaoAuthMethod }}
         - --openbao-k8s-role={{ .Values.operator.openbaoK8sRole }}
         - --openbao-k8s-mount-path={{ .Values.operator.openbaoK8sMountPath }}
