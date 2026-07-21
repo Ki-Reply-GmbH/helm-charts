@@ -38,13 +38,7 @@ usage() {
 }
 
 is_ocm_030_fallback() {
-  if [ "$PRERELEASE" = true ]; then
-    return 1
-  fi
-
-  local component_version
-  component_version=$(yq '.spec.semver' "$SCRIPT_DIR/../kustomize/components/ocm/component.yaml" 2>/dev/null || true)
-  [ "$component_version" = "0.3.0" ]
+  [ "$PRERELEASE" != true ]
 }
 
 timeout_to_seconds() {
@@ -126,6 +120,7 @@ export CONCURRENT
 source "$SCRIPT_DIR/check-wsl-compatibility.sh"
 source "$SCRIPT_DIR/check-environment.sh"
 source "$SCRIPT_DIR/setup-registry-proxies.sh"
+source "$SCRIPT_DIR/setup-release.sh"
 source "$SCRIPT_DIR/setup-prerelease.sh"
 
 # Run WSL compatibility checks
@@ -133,6 +128,12 @@ check_wsl_compatibility
 
 # Run environment checks
 run_environment_checks
+
+# Fail before creating or changing cluster resources if the pinned release
+# archive cannot be obtained or does not match its checksum.
+if [ "$PRERELEASE" != true ]; then
+  prepare_release_artifact
+fi
 
 # Start registry proxies if using cached mode
 if [ "$CACHED" = true ]; then
@@ -277,9 +278,7 @@ kubectl wait --namespace default \
 if [ "$PRERELEASE" = true ]; then
   run_prerelease_setup
 else
-  OCM_VERSION=$(yq '.spec.semver' "$SCRIPT_DIR/../kustomize/components/ocm/component.yaml")
-  echo -e "${COL}[$(date '+%H:%M:%S')] Using OCM Component version: ${OCM_VERSION} ${COL_RES}"
-  kubectl apply -k "$SCRIPT_DIR/../kustomize/overlays/default"
+  run_release_setup
 fi
 
 kubectl wait --namespace default \

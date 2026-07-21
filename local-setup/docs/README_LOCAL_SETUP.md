@@ -123,18 +123,50 @@ kubectl get secret openbao-unseal-key -n openbao-provider -o jsonpath='{.data.ke
 ```
 In this local setup, OpenBao is initialized with 1 key share and threshold 1, so that value is your full unseal key / unseal key portion.
 
-## OCM pin precheck (automatic)
-For non-prerelease local setup tasks, an OCM precheck now runs automatically before `start.sh`.
-It validates that the pinned version in `local-setup/kustomize/components/ocm/component.yaml` still exists in GHCR.
+## Pinned OCM release archive (automatic)
 
-If the version was removed, setup stops early and prints the latest available version plus a hint to run:
+Non-prerelease local setup tasks download and checksum-verify the immutable
+`platform-mesh-0.3.0.ctf.tgz` asset from the
+[`Ki-Reply-GmbH/helm-charts` 0.3.0 release](https://github.com/Ki-Reply-GmbH/helm-charts/releases/tag/0.3.0)
+before `start.sh` can remove an existing
+cluster. It is an OCM Common Transport Format archive, not source code; it is an OCM repository snapshot. The archive is cached under `local-setup/assets/` and imported into a
+local OCI registry during setup; the Platform Mesh component itself is not
+resolved from GHCR. The archive contains the recursive descriptor closure;
+referenced charts and images continue to use their declared registries.
+
+For an environment without direct GitHub access, download the asset in advance
+and run:
 
 ```bash
-task bump-local-setup-component-version
-task local-setup:example-data
+PLATFORM_MESH_RELEASE_FILE=/path/to/platform-mesh-0.3.0.ctf.tgz task local-setup:example-data
 ```
 
-For `--prerelease` tasks, this precheck is skipped.
+The GitHub source archives are not OCM transport archives. This workflow is
+deliberately fixed to 0.3.0; supporting 0.4.0 requires compatibility changes.
+The artifact preparation step is skipped for `--prerelease` tasks.
+
+### (Future option) Manual full OCM backup
+
+For an offline or long-term backup, create the full archive once, store the
+archive and its `.sha256` file in controlled storage such as SharePoint, and
+keep both files together:
+
+```bash
+bin/ocm --config .ocm/config transfer componentversion --recursive --copy-resources --type tgz --repo ghcr.io/platform-mesh github.com/platform-mesh/platform-mesh:0.3.0 platform-mesh-0.3.0-full.ctf.tgz
+sha256sum platform-mesh-0.3.0-full.ctf.tgz > platform-mesh-0.3.0-full.ctf.tgz.sha256
+```
+
+To restore it, manually download both files, verify the checksum with
+`sha256sum -c platform-mesh-0.3.0-full.ctf.tgz.sha256`, then use the archive
+path:
+
+```bash
+PLATFORM_MESH_RELEASE_FILE=/path/to/platform-mesh-0.3.0-full.ctf.tgz task local-setup:example-data
+```
+
+The default setup pins the checksum of the smaller descriptor archive, so
+`PLATFORM_MESH_RELEASE_SHA256` in `local-setup/scripts/setup-release.sh` must
+be deliberately changed to the stored full-archive checksum before restoring.
 
 # bug fixing
 

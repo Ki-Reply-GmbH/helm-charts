@@ -211,40 +211,16 @@ tasks:
     cmds:
       - ./local-setup/scripts/check-ocm-images.sh
 
-  local-setup:check-ocm-pin:
-    desc: Verify pinned OCM component version exists in GHCR
+  local-setup:prepare-release:
+    desc: Download and verify the pinned Platform Mesh 0.3.0 OCM release archive
     silent: true
-    deps:
-      - task: setup:ocm
     cmds:
-      - |
-        PINNED_VERSION=$(yq '.spec.semver' local-setup/kustomize/components/ocm/component.yaml)
-        if [ -z "$PINNED_VERSION" ] || [ "$PINNED_VERSION" = "null" ]; then
-          echo "Pinned OCM component version is missing in local-setup/kustomize/components/ocm/component.yaml"
-          exit 1
-        fi
+      - ./local-setup/scripts/setup-release.sh
 
-        echo "Checking pinned OCM component version: $PINNED_VERSION"
-        if {{.LOCAL_BIN}}/ocm --config .ocm/config get componentversions --repo ghcr.io/platform-mesh github.com/platform-mesh/platform-mesh:$PINNED_VERSION -oyaml >/dev/null 2>&1; then
-          echo "Pinned OCM component version is available in GHCR"
-          exit 0
-        fi
-
-        echo "Pinned OCM component version not found in GHCR: $PINNED_VERSION"
-        LATEST_VERSION=$({{.LOCAL_BIN}}/ocm --config .ocm/config get componentversions --repo ghcr.io/platform-mesh github.com/platform-mesh/platform-mesh --latest -ojson 2>/dev/null | jq -r '.items[0].component.version // empty' 2>/dev/null || true)
-        if [ -n "$LATEST_VERSION" ]; then
-          echo "Latest available OCM component version: $LATEST_VERSION"
-        fi
-        echo "Run: task bump-local-setup-component-version"
-        exit 1
-
-  bump-local-setup-component-version:
-    deps:
-      - task: setup:ocm
+  test:local-setup-release:
+    desc: Test pinned release download, cache, override, and checksum handling
     cmds:
-      - |
-        LATEST_VERSION=$({{ .LOCAL_BIN }}/ocm --config .ocm/config get componentversions --repo ghcr.io/platform-mesh github.com/platform-mesh/platform-mesh --latest -ojson | jq -r '.items[0].component.version')
-        yq -i '.spec.semver = "'$LATEST_VERSION'"' local-setup/kustomize/components/ocm/component.yaml
+      - ./local-setup/scripts/tests/setup-release-test.sh
 
   ocm:build-apply:iterate:
     cmds:
@@ -359,9 +335,9 @@ tasks:
     cmds:
       - cmd: |
           if echo "{{.FLAGS}}" | grep -q -- "--prerelease"; then
-            echo "Skipping OCM pin check for prerelease mode"
+            echo "Skipping OCM release archive preparation for prerelease mode"
           else
-            task local-setup:check-ocm-pin
+            task local-setup:prepare-release
           fi
         silent: true
 
@@ -380,9 +356,9 @@ tasks:
     cmds:
       - cmd: |
           if echo "{{.FLAGS}}" | grep -q -- "--prerelease"; then
-            echo "Skipping OCM pin check for prerelease mode"
+            echo "Skipping OCM release archive preparation for prerelease mode"
           else
-            task local-setup:check-ocm-pin
+            task local-setup:prepare-release
           fi
         silent: true
 

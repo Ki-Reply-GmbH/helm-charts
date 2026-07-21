@@ -13,8 +13,8 @@ get_kubectl_exec_flags() {
   fi
 }
 
-# Deploy OCI registry for prerelease workflow
-deploy_oci_registry() {
+# Deploy the local OCI registry used by release and prerelease workflows.
+deploy_local_ocm_registry() {
   echo -e "${COL}[$(date '+%H:%M:%S')] Deploying local OCI registry ${COL_RES}"
   helm repo add twuni https://twuni.github.io/docker-registry.helm || true
   helm repo update
@@ -38,7 +38,7 @@ deploy_oci_registry() {
 }
 
 # Deploy transfer pod for OCM operations
-deploy_transfer_pod() {
+deploy_ocm_transfer_pod() {
   echo -e "${COL}[$(date '+%H:%M:%S')] Deploying OCM transfer pod ${COL_RES}"
   kubectl delete pod ocm-transfer-pod --ignore-not-found=true || true
   kubectl run ocm-transfer-pod --image=ghcr.io/platform-mesh/images/ocmbuilder:pr-4 -- sleep infinity
@@ -63,8 +63,8 @@ run_prerelease_setup() {
   echo -e "${COL}[$(date '+%H:%M:%S')] Using PRERELEASE OCM Component ${COL_RES}"
 
   # Deploy OCM infrastructure
-  deploy_oci_registry
-  deploy_transfer_pod
+  deploy_local_ocm_registry
+  deploy_ocm_transfer_pod
   $SCRIPT_DIR/configureOcmTls.sh
 
   # Build prerelease component
@@ -82,4 +82,29 @@ run_prerelease_setup() {
   # Wait for OCM platform-mesh component to be ready (this deploys the platform-mesh-operator)
   echo -e "${COL}[$(date '+%H:%M:%S')] Waiting for OCM platform-mesh component to reconcile ${COL_RES}"
   kubectl wait --namespace default --for=condition=Ready component/platform-mesh --timeout=$KUBECTL_WAIT_TIMEOUT
+}
+
+# Import the immutable release archive and expose it through the local repository.
+run_release_setup() {
+  local archive_name
+
+  prepare_release_artifact
+  archive_name=$(basename "$PLATFORM_MESH_RELEASE_ARCHIVE")
+
+  echo -e "${COL}[$(date '+%H:%M:%S')] Importing Platform Mesh OCM release 0.3.0 ${COL_RES}"
+  deploy_local_ocm_registry
+  deploy_ocm_transfer_pod
+  "$SCRIPT_DIR/configureOcmTls.sh"
+
+  kubectl cp "$PLATFORM_MESH_RELEASE_ARCHIVE" -n default "ocm-transfer-pod:/tmp/$archive_name"
+  kubectl exec $(get_kubectl_exec_flags) ocm-transfer-pod -- ocm transfer ctf \
+    --recursive --overwrite "/tmp/$archive_name" \
+    oci://oci-registry-docker-registry.registry.svc.cluster.local/platform-mesh
+
+  kubectl apply -k "$SCRIPT_DIR/../kustomize/overlays/ocm-release"
+  kubectl rollout restart deployment/ocm-k8s-toolkit-controller-manager -n ocm-system 2>/dev/null || true
+  kubectl wait --namespace ocm-system --for=condition=available \
+    deployment/ocm-k8s-toolkit-controller-manager --timeout="$KUBECTL_WAIT_TIMEOUT"
+  kubectl wait --namespace default --for=condition=Ready \
+    component/platform-mesh --timeout="$KUBECTL_WAIT_TIMEOUT"
 }

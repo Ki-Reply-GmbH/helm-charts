@@ -29,4 +29,6 @@ local-setup/e2e/*.png
 local-setup/scripts/post-flux-hook.sh
 local-setup/scripts/post-platform-mesh-hook.sh
 local-setup/scripts/platform-mesh-resource-hook.sh
+local-setup/assets/*.ctf.tgz
+local-setup/assets/*.ctf.tgz.part.*
 /convo
