@@ -1,0 +1,11 @@
+apiVersion: initialization.kcp.io/v1alpha1
+kind: InitTarget
+metadata:
+  name: openbao-onboarding
+spec:
+  workspaceTypeRef:
+    path: root:platform-mesh-system
+    name: openbao-onboarding
+  sources:
+    - template:
+        name: openbao-onboarding

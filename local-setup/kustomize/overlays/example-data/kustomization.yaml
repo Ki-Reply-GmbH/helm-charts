@@ -39,3 +39,6 @@ patches:
             - workspaceTypePath: root:account
               export: openbao.apeiro.dev
               path: root:providers:openbao-provider
+            - workspaceTypePath: root:org
+              export: openbao.apeiro.dev
+              path: root:providers:openbao-provider

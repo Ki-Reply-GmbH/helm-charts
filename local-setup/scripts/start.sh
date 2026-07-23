@@ -372,6 +372,10 @@ if [ "$EXAMPLE_DATA" = true ]; then
     --for=condition=Ready helmreleases \
     --timeout=$KUBECTL_WAIT_TIMEOUT openbao-operator
 
+  echo -e "${COL}[$(date '+%H:%M:%S')] Configuring automatic OpenBao workspace onboarding ${COL_RES}"
+  KCP_KUBECONFIG="$(pwd)/.secret/kcp/admin.kubeconfig" \
+    "$SCRIPT_DIR/configure-openbao-workspace-onboarding.sh"
+
 fi
 
 echo -e "${COL}[$(date '+%H:%M:%S')] Verifying backend resources ${COL_RES}"
