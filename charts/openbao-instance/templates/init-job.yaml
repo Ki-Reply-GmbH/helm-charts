@@ -200,31 +200,6 @@ spec:
             done
             echo "  Operator role created"
 
-            # Also bootstrap the operator policy and Kubernetes auth inside the top-level
-            # namespaces the operator manages ("orgs", "providers"). This is a belt-and-suspenders
-            # measure: the operator code uses a root token for all OpenBao calls, so these
-            # aren't strictly required. They allow a Kubernetes-auth token (if one is ever used
-            # directly against these namespaces) to also have the necessary permissions.
-            for NS in orgs providers; do
-              echo "Bootstrapping operator permissions in namespace: $NS"
-              bao namespace create "$NS" 2>/dev/null || echo "  Namespace $NS already exists"
-
-              BAO_NAMESPACE="$NS" bao policy write {{ .Values.initJob.operatorPolicyName }} /tmp/operator-policy.hcl 2>/dev/null \
-                && echo "  Policy written in $NS" || echo "  Policy write in $NS skipped (may already exist)"
-
-              BAO_NAMESPACE="$NS" bao auth enable kubernetes 2>/dev/null || echo "  kubernetes auth already enabled in $NS"
-              BAO_NAMESPACE="$NS" bao write auth/kubernetes/config \
-                kubernetes_host="https://kubernetes.default.svc:443" \
-                kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt 2>/dev/null \
-                && echo "  kubernetes auth configured in $NS" || echo "  kubernetes auth config skipped in $NS"
-              BAO_NAMESPACE="$NS" bao write auth/kubernetes/role/{{ .Values.initJob.operatorRole }} \
-                bound_service_account_names="{{ .Values.initJob.operatorServiceAccount }}" \
-                bound_service_account_namespaces="{{ .Values.initJob.operatorNamespace }}" \
-                policies="{{ .Values.initJob.operatorPolicyName }}" \
-                ttl=1h 2>/dev/null \
-                && echo "  Role created in $NS" || echo "  Role creation skipped in $NS"
-            done
-
             echo "Init job completed successfully!"
         env:
           - name: BAO_ADDR
