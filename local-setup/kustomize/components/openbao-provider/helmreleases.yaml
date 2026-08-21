@@ -56,7 +56,7 @@ spec:
       enabled: false
     operator:
       openbaoAddress: "http://openbao.openbao-provider.svc:8200"
-      openbaoDisplayUrl: "https://openbao.services.portal.localhost:8443/ui"
+      openbaoDisplayUrl: "https://openbao.services.portal.localhost:8443"
       openbaoAuthMethod: "kubernetes"
       openbaoK8sRole: "openbao-operator"
       apiexportEndpointsliceName: "openbao.apeiro.dev"
