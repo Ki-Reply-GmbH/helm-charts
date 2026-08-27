@@ -2,7 +2,7 @@ apiVersion: apis.kcp.io/v1alpha1
 kind: APIResourceSchema
 metadata:
   creationTimestamp: null
-  name: v260713-add438b.openbaonamespaces.openbao.apeiro.dev
+  name: v260713-add438d.openbaonamespaces.openbao.apeiro.dev
 spec:
   group: openbao.apeiro.dev
   names:
@@ -10,447 +10,423 @@ spec:
     listKind: OpenBaoNamespaceList
     plural: openbaonamespaces
     shortNames:
-    - obn
+      - obn
     singular: openbaonamespace
   scope: Cluster
   versions:
-  - additionalPrinterColumns:
-    - description: Parent namespace
-      jsonPath: .spec.parentRef.name
-      name: Parent
-      priority: 1
-      type: string
-    - description: OpenBao namespace path
-      jsonPath: .status.access.namespace
-      name: Namespace
-      type: string
-    - description: Auth method
-      jsonPath: .status.access.authMethod
-      name: Auth
-      type: string
-    - description: Ready status
-      jsonPath: .status.ready
-      name: Ready
-      type: boolean
-    - description: Nesting depth
-      jsonPath: .status.depth
-      name: Depth
-      priority: 1
-      type: integer
-    - description: Current phase
-      jsonPath: .status.phase
-      name: Phase
-      type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
-    name: v1
-    schema:
-      description: |-
-        OpenBaoNamespace is used to represent an isolated OpenBao namespace with admin authentication.
-        Hierarchical nesting is supported via the parentRef field.
-      properties:
-        apiVersion:
-          description: |-
-            APIVersion defines the versioned schema of this representation of an object.
-            Servers should convert recognized schemas to the latest internal value, and
-            may reject unrecognized values.
-            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+    - additionalPrinterColumns:
+        - description: Parent namespace
+          jsonPath: .spec.parentRef.name
+          name: Parent
+          priority: 1
           type: string
-        kind:
-          description: |-
-            Kind is a string value representing the REST resource this object represents.
-            Servers may infer this from the endpoint the client submits requests to.
-            Cannot be updated.
-            In CamelCase.
-            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+        - description: OpenBao namespace path
+          jsonPath: .status.access.namespace
+          name: Namespace
           type: string
-        metadata:
-          type: object
-        spec:
-          description: OpenBaoNamespaceSpec defines the desired state of OpenBaoNamespace.
-          properties:
-            auth:
-              description: Auth configures the authentication method for accessing
-                the OpenBao namespace.
-              properties:
-                appRole:
-                  description: AppRole configures AppRole authentication for machine
-                    access.
-                  properties:
-                    enabled:
-                      default: true
-                      description: Enabled enables AppRole authentication.
-                      type: boolean
-                    secretIdNumUses:
-                      default: 0
-                      description: SecretIdNumUses is the maximum number of times
-                        the SecretID can be used.
-                      type: integer
-                    secretIdTTL:
-                      default: 24h
-                      description: SecretIdTTL is the TTL for the generated SecretID.
-                      type: string
-                    secretRef:
-                      description: SecretRef specifies where the AppRole credentials
-                        are to be stored.
-                      properties:
-                        name:
-                          description: Name is the name of the secret to create.
-                          minLength: 1
-                          type: string
-                        namespace:
-                          description: Namespace is the namespace of the secret.
-                          minLength: 1
-                          type: string
-                      required:
-                      - name
-                      - namespace
-                      type: object
-                    tokenMaxTTL:
-                      default: 24h
-                      description: TokenMaxTTL is the maximum TTL for tokens issued
-                        via AppRole.
-                      type: string
-                    tokenTTL:
-                      default: 1h
-                      description: TokenTTL is the TTL for tokens issued via AppRole.
-                      type: string
-                  required:
-                  - secretRef
-                  type: object
-                jwt:
-                  description: JWT configures JWT authentication for machine access
-                    using an OIDC/JWKS provider.
-                  properties:
-                    boundAudiences:
-                      description: BoundAudiences is the expected audiences of the
-                        JWT.
-                      items:
-                        type: string
-                      minItems: 1
-                      type: array
-                    boundIssuer:
-                      description: BoundIssuer is the expected issuer of the JWT.
-                      minLength: 1
-                      type: string
-                    boundSubject:
-                      description: BoundSubject is the expected subject of the JWT.
-                      type: string
-                    enabled:
-                      default: true
-                      description: Enabled enables JWT authentication.
-                      type: boolean
-                    jwksUrl:
-                      description: JWKSURL is the JWKS URL for the JWT issuer.
-                      type: string
-                    jwtValidationPubkeys:
-                      description: JWTValidationPubkeys is a list of PEM-encoded public
-                        keys to validate the JWT signature offline.
-                      items:
-                        type: string
-                      type: array
-                    oidcDiscoveryCaPem:
-                      description: OIDCDiscoveryCAPem is the PEM-encoded CA cert used
-                        to validate the OIDC discovery URL.
-                      type: string
-                    oidcDiscoveryUrl:
-                      description: OIDCDiscoveryURL is the OIDC Discovery URL for
-                        the JWT issuer.
-                      type: string
-                    tokenMaxTTL:
-                      default: 24h
-                      description: TokenMaxTTL is the maximum TTL for tokens issued
-                        via JWT.
-                      type: string
-                    tokenTTL:
-                      default: 1h
-                      description: TokenTTL is the TTL for tokens issued via JWT.
-                      type: string
-                    userClaim:
-                      default: sub
-                      description: UserClaim is the claim used to uniquely identify
-                        the user.
-                      type: string
-                  required:
-                  - boundAudiences
-                  - boundIssuer
-                  type: object
-                oidc:
-                  description: OIDC configures OIDC authentication for interactive
-                    access.
-                  properties:
-                    allowedGroups:
-                      description: AllowedGroups specifies which Keycloak groups are
-                        allowed to authenticate.
-                      items:
-                        type: string
-                      type: array
-                    clientId:
-                      description: ClientID is the OpenID Connect client ID in Keycloak.
-                      type: string
-                    clientSecretRef:
-                      description: ClientSecretRef is a reference to the K8s Secret
-                        containing the client secret.
-                      properties:
-                        name:
-                          description: Name is the name of the secret to create.
-                          minLength: 1
-                          type: string
-                        namespace:
-                          description: Namespace is the namespace of the secret.
-                          minLength: 1
-                          type: string
-                      required:
-                      - name
-                      - namespace
-                      type: object
-                    enabled:
-                      default: true
-                      description: Enabled enables OIDC authentication.
-                      type: boolean
-                    keycloakUrl:
-                      description: KeycloakURL is the Keycloak discovery URL.
-                      type: string
-                  type: object
-              type: object
-              x-kubernetes-validations:
-              - message: exactly one of oidc, appRole, or jwt must be specified
-                rule: '(has(self.oidc) ? 1 : 0) + (has(self.appRole) ? 1 : 0) + (has(self.jwt)
-                  ? 1 : 0) == 1'
-              - message: keycloakUrl is required when OIDC is enabled
-                rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.keycloakUrl)
-                  && size(self.oidc.keycloakUrl) > 0)'
-              - message: clientId is required when OIDC is enabled
-                rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.clientId)
-                  && size(self.oidc.clientId) > 0)'
-              - message: clientSecretRef.name is required when OIDC is enabled
-                rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.clientSecretRef)
-                  && size(self.oidc.clientSecretRef.name) > 0)'
-              - message: exactly one of oidcDiscoveryUrl, jwksUrl, or jwtValidationPubkeys
-                  must be provided when JWT is enabled
-                rule: '!has(self.jwt) || !self.jwt.enabled || ((has(self.jwt.oidcDiscoveryUrl)
-                  && size(self.jwt.oidcDiscoveryUrl) > 0 ? 1 : 0) + (has(self.jwt.jwksUrl)
-                  && size(self.jwt.jwksUrl) > 0 ? 1 : 0) + (has(self.jwt.jwtValidationPubkeys)
-                  && size(self.jwt.jwtValidationPubkeys) > 0 ? 1 : 0) == 1)'
-            openBaoNamespace:
-              description: |-
-                OpenBaoNamespace is the desired namespace segment name in OpenBao.
-                Required when parentRef is set; ignored for root-level namespaces.
-              maxLength: 63
-              pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
-              type: string
-            parentRef:
-              description: |-
-                ParentRef is an optional reference to a parent OpenBaoNamespace CR.
-                When omitted, the namespace path is derived from the kcp workspace path (root-level behavior).
-              properties:
-                name:
-                  description: Name is the metadata.name of the parent OpenBaoNamespace
-                    CR.
-                  maxLength: 253
-                  minLength: 1
-                  type: string
-              required:
-              - name
-              type: object
-          required:
-          - auth
-          type: object
-          x-kubernetes-validations:
-          - message: openBaoNamespace is required when parentRef is set
-            rule: '!has(self.parentRef) || (has(self.openBaoNamespace) && size(self.openBaoNamespace)
-              > 0)'
-          - message: parentRef is immutable once set
-            rule: '!has(oldSelf.parentRef) || (has(self.parentRef) && self.parentRef
-              == oldSelf.parentRef)'
-          - message: openBaoNamespace is immutable once set
-            rule: '!has(oldSelf.openBaoNamespace) || (has(self.openBaoNamespace) &&
-              self.openBaoNamespace == oldSelf.openBaoNamespace)'
-        status:
-          description: OpenBaoNamespaceStatus defines the observed state of OpenBaoNamespace.
-          properties:
-            access:
-              description: Access contains information for accessing the namespace.
-              properties:
-                authMethod:
-                  description: AuthMethod is the configured auth method type.
-                  type: string
-                authMountPoint:
-                  description: AuthMountPoint is the mount point of the auth method
-                    in OpenBao.
-                  type: string
-                kubeAuthRole:
-                  description: KubeAuthRole is the Kubernetes auth role.
-                  type: string
-                namespace:
-                  description: Namespace is the OpenBao namespace associated with
-                    this resource.
-                  type: string
-                oidcClientId:
-                  description: OIDCClientID is the Keycloak client ID.
-                  type: string
-                openbaoUrl:
-                  description: OpenBaoUrl is the URL to access OpenBao.
-                  type: string
-              type: object
-            children:
-              description: Children lists the names of OpenBaoNamespace CRs that reference
-                this namespace as their parent.
-              items:
-                type: string
-              type: array
-            conditions:
-              description: Conditions represent the latest available observations
-                of the namespace's state.
-              items:
-                description: Condition contains details for one aspect of the current
-                  state of this API Resource.
+        - description: Auth method
+          jsonPath: .status.access.authMethod
+          name: Auth
+          type: string
+        - description: Ready status
+          jsonPath: .status.ready
+          name: Ready
+          type: boolean
+        - description: Nesting depth
+          jsonPath: .status.depth
+          name: Depth
+          priority: 1
+          type: integer
+        - description: Current phase
+          jsonPath: .status.phase
+          name: Phase
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1
+      schema:
+        description: |-
+          OpenBaoNamespace is used to represent an isolated OpenBao namespace with admin authentication.
+          Hierarchical nesting is supported via the parentRef field.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: OpenBaoNamespaceSpec defines the desired state of OpenBaoNamespace.
+            properties:
+              auth:
+                description: Auth configures the authentication method for accessing the OpenBao namespace.
                 properties:
-                  lastTransitionTime:
-                    description: |-
-                      lastTransitionTime is the last time the condition transitioned from one status to another.
-                      This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
-                    format: date-time
-                    type: string
-                  message:
-                    description: |-
-                      message is a human readable message indicating details about the transition.
-                      This may be an empty string.
-                    maxLength: 32768
-                    type: string
-                  observedGeneration:
-                    description: |-
-                      observedGeneration represents the .metadata.generation that the condition was set based upon.
-                      For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-                      with respect to the current state of the instance.
-                    format: int64
-                    minimum: 0
-                    type: integer
-                  reason:
-                    description: |-
-                      reason contains a programmatic identifier indicating the reason for the condition's last transition.
-                      Producers of specific condition types may define expected values and meanings for this field,
-                      and whether the values are considered a guaranteed API.
-                      The value should be a CamelCase string.
-                      This field may not be empty.
-                    maxLength: 1024
+                  appRole:
+                    description: AppRole configures AppRole authentication for machine access.
+                    properties:
+                      enabled:
+                        default: true
+                        description: Enabled enables AppRole authentication.
+                        type: boolean
+                      secretIdNumUses:
+                        default: 0
+                        description: SecretIdNumUses is the maximum number of times the SecretID can be used.
+                        type: integer
+                      secretIdTTL:
+                        default: 24h
+                        description: SecretIdTTL is the TTL for the generated SecretID.
+                        type: string
+                      secretRef:
+                        description: SecretRef specifies where the AppRole credentials are to be stored.
+                        properties:
+                          name:
+                            description: Name is the name of the secret to create.
+                            minLength: 1
+                            type: string
+                          namespace:
+                            description: Namespace is the namespace of the secret.
+                            minLength: 1
+                            type: string
+                        required:
+                          - name
+                          - namespace
+                        type: object
+                      tokenMaxTTL:
+                        default: 24h
+                        description: TokenMaxTTL is the maximum TTL for tokens issued via AppRole.
+                        type: string
+                      tokenTTL:
+                        default: 1h
+                        description: TokenTTL is the TTL for tokens issued via AppRole.
+                        type: string
+                    required:
+                      - secretRef
+                    type: object
+                  jwt:
+                    description: JWT configures JWT authentication for machine access using an OIDC/JWKS provider.
+                    properties:
+                      boundAudiences:
+                        description: BoundAudiences is the expected audiences of the JWT.
+                        items:
+                          type: string
+                        minItems: 1
+                        type: array
+                      boundIssuer:
+                        description: BoundIssuer is the expected issuer of the JWT.
+                        minLength: 1
+                        type: string
+                      boundSubject:
+                        description: BoundSubject is the expected subject of the JWT.
+                        type: string
+                      enabled:
+                        default: true
+                        description: Enabled enables JWT authentication.
+                        type: boolean
+                      jwksUrl:
+                        description: JWKSURL is the JWKS URL for the JWT issuer.
+                        type: string
+                      jwtValidationPubkeys:
+                        description: JWTValidationPubkeys is a list of PEM-encoded public keys to validate the JWT signature offline.
+                        items:
+                          type: string
+                        type: array
+                      oidcDiscoveryCaPem:
+                        description: OIDCDiscoveryCAPem is the PEM-encoded CA cert used to validate the OIDC discovery URL.
+                        type: string
+                      oidcDiscoveryUrl:
+                        description: OIDCDiscoveryURL is the OIDC Discovery URL for the JWT issuer.
+                        type: string
+                      tokenMaxTTL:
+                        default: 24h
+                        description: TokenMaxTTL is the maximum TTL for tokens issued via JWT.
+                        type: string
+                      tokenTTL:
+                        default: 1h
+                        description: TokenTTL is the TTL for tokens issued via JWT.
+                        type: string
+                      userClaim:
+                        default: sub
+                        description: UserClaim is the claim used to uniquely identify the user.
+                        type: string
+                    required:
+                      - boundAudiences
+                      - boundIssuer
+                    type: object
+                  oidc:
+                    description: OIDC configures OIDC authentication for interactive access.
+                    properties:
+                      allowedGroups:
+                        description: AllowedGroups specifies which Keycloak groups are allowed to authenticate.
+                        items:
+                          type: string
+                        type: array
+                      clientId:
+                        description: ClientID is the OpenID Connect client ID in Keycloak.
+                        type: string
+                      clientSecretRef:
+                        description: ClientSecretRef is a reference to the K8s Secret containing the client secret.
+                        properties:
+                          name:
+                            description: Name is the name of the secret to create.
+                            minLength: 1
+                            type: string
+                          namespace:
+                            description: Namespace is the namespace of the secret.
+                            minLength: 1
+                            type: string
+                        required:
+                          - name
+                          - namespace
+                        type: object
+                      enabled:
+                        default: true
+                        description: Enabled enables OIDC authentication.
+                        type: boolean
+                      keycloakBaseUrl:
+                        description: |-
+                          KeycloakBaseURL is the base URL of the Keycloak server (without realm path).
+                          The operator appends /realms/<realmId> to build the full OIDC discovery URL.
+                          Example: "http://keycloak.platform-mesh-system.svc.cluster.local/keycloak"
+                        type: string
+                      providerConfigRef:
+                        default: default
+                        description: ProviderConfigRef is the name of the Crossplane ProviderConfig for Keycloak. Used when realmId is set (proactive OIDC client provisioning via Crossplane).
+                        type: string
+                      realmId:
+                        description: |-
+                          RealmID is the Keycloak realm ID to use for OIDC provisioning.
+                          When omitted, the realm ID is derived automatically from the KCP workspace path:
+                          for workspace path "root:orgs:<org-name>:<account-name>", realmId = "<org-name>".
+                          When set explicitly, this value takes precedence over the derived value.
+                        type: string
+                    type: object
+                type: object
+                x-kubernetes-validations:
+                  - message: exactly one of oidc, appRole, or jwt must be specified
+                    rule: '(has(self.oidc) ? 1 : 0) + (has(self.appRole) ? 1 : 0) + (has(self.jwt) ? 1 : 0) == 1'
+                  - message: keycloakBaseUrl is required when OIDC is enabled
+                    rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.keycloakBaseUrl) && size(self.oidc.keycloakBaseUrl) > 0)'
+                  - message: clientId is required when OIDC is enabled
+                    rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.clientId) && size(self.oidc.clientId) > 0)'
+                  - message: exactly one of oidcDiscoveryUrl, jwksUrl, or jwtValidationPubkeys must be provided when JWT is enabled
+                    rule: '!has(self.jwt) || !self.jwt.enabled || ((has(self.jwt.oidcDiscoveryUrl) && size(self.jwt.oidcDiscoveryUrl) > 0 ? 1 : 0) + (has(self.jwt.jwksUrl) && size(self.jwt.jwksUrl) > 0 ? 1 : 0) + (has(self.jwt.jwtValidationPubkeys) && size(self.jwt.jwtValidationPubkeys) > 0 ? 1 : 0) == 1)'
+              openBaoNamespace:
+                description: |-
+                  OpenBaoNamespace is the desired namespace segment name in OpenBao.
+                  Required when parentRef is set; ignored for root-level namespaces.
+                maxLength: 63
+                pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
+                type: string
+              parentRef:
+                description: |-
+                  ParentRef is an optional reference to a parent OpenBaoNamespace CR.
+                  When omitted, the namespace path is derived from the kcp workspace path (root-level behavior).
+                properties:
+                  name:
+                    description: Name is the metadata.name of the parent OpenBaoNamespace CR.
+                    maxLength: 253
                     minLength: 1
-                    pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
-                    type: string
-                  status:
-                    description: status of the condition, one of True, False, Unknown.
-                    enum:
-                    - "True"
-                    - "False"
-                    - Unknown
-                    type: string
-                  type:
-                    description: type of condition in CamelCase or in foo.example.com/CamelCase.
-                    maxLength: 316
-                    pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                     type: string
                 required:
-                - lastTransitionTime
-                - message
-                - reason
-                - status
-                - type
+                  - name
                 type: object
-              type: array
-              x-kubernetes-list-map-keys:
-              - type
-              x-kubernetes-list-type: map
-            depth:
-              description: |-
-                Depth is the resolved depth of this namespace in the hierarchy.
-                0 = root (no parentRef), 1 = direct child, etc.
-              format: int32
-              minimum: 0
-              type: integer
-            message:
-              description: Message is a human-readable status message.
-              type: string
-            observedGeneration:
-              description: ObservedGeneration is the generation of the spec last observed
-                by the controller.
-              format: int64
-              type: integer
-            phase:
-              description: Phase is the current phase of namespace provisioning.
-              enum:
-              - Pending
-              - CreatingNamespace
-              - ConfiguringAuth
-              - Ready
-              - Failed
-              type: string
-            ready:
-              description: Ready indicates whether the OpenBao namespace is fully
-                provisioned.
-              type: boolean
-            resources:
-              description: Resources contains information about provisioned OpenBao
-                resources.
-              properties:
-                appRoleSecretRef:
-                  description: AppRoleSecretRef references the created K8s Secret
-                    with AppRole credentials.
+            required:
+              - auth
+            type: object
+            x-kubernetes-validations:
+              - message: openBaoNamespace is required when parentRef is set
+                rule: '!has(self.parentRef) || (has(self.openBaoNamespace) && size(self.openBaoNamespace) > 0)'
+              - message: parentRef is immutable once set
+                rule: '!has(oldSelf.parentRef) || (has(self.parentRef) && self.parentRef == oldSelf.parentRef)'
+              - message: openBaoNamespace is immutable once set
+                rule: '!has(oldSelf.openBaoNamespace) || (has(self.openBaoNamespace) && self.openBaoNamespace == oldSelf.openBaoNamespace)'
+          status:
+            description: OpenBaoNamespaceStatus defines the observed state of OpenBaoNamespace.
+            properties:
+              access:
+                description: Access contains information for accessing the namespace.
+                properties:
+                  authMethod:
+                    description: AuthMethod is the configured auth method type.
+                    type: string
+                  authMountPoint:
+                    description: AuthMountPoint is the mount point of the auth method in OpenBao.
+                    type: string
+                  kubeAuthRole:
+                    description: KubeAuthRole is the Kubernetes auth role.
+                    type: string
+                  namespace:
+                    description: Namespace is the OpenBao namespace associated with this resource.
+                    type: string
+                  oidcClientId:
+                    description: OIDCClientID is the Keycloak client ID.
+                    type: string
+                  openbaoUrl:
+                    description: OpenBaoUrl is the URL to access OpenBao.
+                    type: string
+                type: object
+              children:
+                description: Children lists the names of OpenBaoNamespace CRs that reference this namespace as their parent.
+                items:
+                  type: string
+                type: array
+              conditions:
+                description: Conditions represent the latest available observations of the namespace's state.
+                items:
+                  description: Condition contains details for one aspect of the current state of this API Resource.
                   properties:
-                    apiVersion:
-                      description: API version of the referent.
-                      type: string
-                    fieldPath:
+                    lastTransitionTime:
                       description: |-
-                        If referring to a piece of an object instead of an entire object, this string
-                        should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                        For example, if the object reference is to a container within a pod, this would take on a value like:
-                        "spec.containers{name}" (where "name" refers to the name of the container that triggered
-                        the event) or if no container name is specified "spec.containers[2]" (container with
-                        index 2 in this pod). This syntax is chosen only to have some well-defined way of
-                        referencing a part of an object.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
                       type: string
-                    kind:
+                    message:
                       description: |-
-                        Kind of the referent.
-                        More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
                       type: string
-                    name:
+                    observedGeneration:
                       description: |-
-                        Name of the referent.
-                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      type: string
-                    namespace:
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
                       description: |-
-                        Namespace of the referent.
-                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
                       type: string
-                    resourceVersion:
-                      description: |-
-                        Specific resourceVersion to which this reference is made, if any.
-                        More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                        - "True"
+                        - "False"
+                        - Unknown
                       type: string
-                    uid:
-                      description: |-
-                        UID of the referent.
-                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
+                  required:
+                    - lastTransitionTime
+                    - message
+                    - reason
+                    - status
+                    - type
                   type: object
-                  x-kubernetes-map-type: atomic
-                authMethodPath:
-                  description: AuthMethodPath is the auth method mount path in OpenBao.
-                  type: string
-                openbaoNamespace:
-                  description: OpenBaoNamespace is the provisioned namespace path
-                    in OpenBao.
-                  type: string
-              type: object
-          type: object
-      type: object
-      x-kubernetes-validations:
-      - message: root OpenBaoNamespace (without parentRef) must be named 'default'
-        rule: has(self.spec.parentRef) || self.metadata.name == 'default'
-    served: true
-    storage: true
-    subresources:
-      status: {}
+                type: array
+                x-kubernetes-list-map-keys:
+                  - type
+                x-kubernetes-list-type: map
+              depth:
+                description: |-
+                  Depth is the resolved depth of this namespace in the hierarchy.
+                  0 = root (no parentRef), 1 = direct child, etc.
+                format: int32
+                minimum: 0
+                type: integer
+              message:
+                description: Message is a human-readable status message.
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the generation of the spec last observed by the controller.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the current phase of namespace provisioning.
+                enum:
+                  - Pending
+                  - ProvisioningOIDCClient
+                  - CreatingNamespace
+                  - ConfiguringAuth
+                  - Ready
+                  - Failed
+                type: string
+              ready:
+                description: Ready indicates whether the OpenBao namespace is fully provisioned.
+                type: boolean
+              resources:
+                description: Resources contains information about provisioned OpenBao resources.
+                properties:
+                  appRoleSecretRef:
+                    description: AppRoleSecretRef references the created K8s Secret with AppRole credentials.
+                    properties:
+                      apiVersion:
+                        description: API version of the referent.
+                        type: string
+                      fieldPath:
+                        description: |-
+                          If referring to a piece of an object instead of an entire object, this string
+                          should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                          For example, if the object reference is to a container within a pod, this would take on a value like:
+                          "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                          the event) or if no container name is specified "spec.containers[2]" (container with
+                          index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                          referencing a part of an object.
+                        type: string
+                      kind:
+                        description: |-
+                          Kind of the referent.
+                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                        type: string
+                      name:
+                        description: |-
+                          Name of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      namespace:
+                        description: |-
+                          Namespace of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                        type: string
+                      resourceVersion:
+                        description: |-
+                          Specific resourceVersion to which this reference is made, if any.
+                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                        type: string
+                      uid:
+                        description: |-
+                          UID of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                        type: string
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  authMethodPath:
+                    description: AuthMethodPath is the auth method mount path in OpenBao.
+                    type: string
+                  openbaoNamespace:
+                    description: OpenBaoNamespace is the provisioned namespace path in OpenBao.
+                    type: string
+                type: object
+            type: object
+        type: object
+        x-kubernetes-validations:
+          - message: root OpenBaoNamespace (without parentRef) must be named 'default'
+            rule: has(self.spec.parentRef) || self.metadata.name == 'default'
+      served: true
+      storage: true
+      subresources:
+        status: {}

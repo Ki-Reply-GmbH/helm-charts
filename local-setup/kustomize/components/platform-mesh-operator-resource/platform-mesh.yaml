@@ -65,7 +65,7 @@ spec:
           shards: []
           frontProxy:
             clusterIP: "10.96.0.100"
-            port: 8443
+            port: 6443
         traefik:
           accessControlAllowOriginList:
           - "http://localhost:4200"
@@ -188,4 +188,4 @@ spec:
     virtual-workspaces:
       values:
         deployment:
-          serverUrl: https://frontproxy-front-proxy.platform-mesh-system:8443
+          serverUrl: https://frontproxy-front-proxy.platform-mesh-system:6443

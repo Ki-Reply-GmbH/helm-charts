@@ -239,11 +239,11 @@ fi
 echo -e "${COL}[$(date '+%H:%M:%S')] Install KRO and OCM ${COL_RES}"
 kubectl apply -k $SCRIPT_DIR/../kustomize/base
 
-kubectl wait --namespace default \
+kubectl --context kind-platform-mesh wait --namespace default \
   --for=condition=Ready helmreleases \
   --timeout=$KUBECTL_WAIT_TIMEOUT kro
 
-kubectl wait --namespace default \
+kubectl --context kind-platform-mesh wait --namespace default \
   --for=condition=Ready helmreleases \
   --timeout=$KUBECTL_WAIT_TIMEOUT ocm-k8s-toolkit
 
@@ -268,7 +268,7 @@ kubectl create secret generic domain-certificate-ca -n platform-mesh-system \
 
 echo -e "${COL}[$(date '+%H:%M:%S')] Install Platform-Mesh Operator ${COL_RES}"
 kubectl apply -k $SCRIPT_DIR/../kustomize/base/rgd
-kubectl wait --namespace default \
+kubectl --context kind-platform-mesh wait --namespace default \
   --for=condition=Ready resourcegraphdefinition \
   --timeout=$KUBECTL_WAIT_TIMEOUT platform-mesh-operator
 
@@ -282,7 +282,7 @@ else
   kubectl apply -k "$SCRIPT_DIR/../kustomize/overlays/default"
 fi
 
-kubectl wait --namespace default \
+kubectl --context kind-platform-mesh wait --namespace default \
   --for=condition=Ready PlatformMeshOperator \
   --timeout=$KUBECTL_WAIT_TIMEOUT platform-mesh-operator
 kubectl wait --for=condition=Established crd/platformmeshes.core.platform-mesh.io --timeout=$KUBECTL_WAIT_TIMEOUT
@@ -341,8 +341,8 @@ fi
 if [ "$EXAMPLE_DATA" = true ]; then
 
   echo -e "${COL}[$(date '+%H:%M:%S')] Installing OpenBao local HTTPRoute ${COL_RES}"
-  kubectl wait --for=condition=Established crd/httproutes.gateway.networking.k8s.io --timeout=$KUBECTL_WAIT_TIMEOUT
-  kubectl apply -f $SCRIPT_DIR/../kustomize/components/openbao-provider/openbao-httproute.yaml
+  kubectl --context kind-platform-mesh wait --for=condition=Established crd/httproutes.gateway.networking.k8s.io --timeout=$KUBECTL_WAIT_TIMEOUT
+  kubectl --context kind-platform-mesh apply -f $SCRIPT_DIR/../kustomize/components/openbao-provider/openbao-httproute.yaml
 
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl create-workspace providers --type=root:providers --ignore-existing --server="https://localhost:8443/clusters/root"
   KUBECONFIG=$(pwd)/.secret/kcp/admin.kubeconfig kubectl create-workspace httpbin-provider --type=root:provider --ignore-existing --server="https://localhost:8443/clusters/root:providers"
@@ -356,19 +356,19 @@ if [ "$EXAMPLE_DATA" = true ]; then
 
   echo -e "${COL}[$(date '+%H:%M:%S')] Waiting for example providers ${COL_RES}"
 
-  kubectl wait --namespace default \
+  kubectl --context kind-platform-mesh wait --namespace default \
     --for=condition=Ready helmreleases \
     --timeout=$KUBECTL_WAIT_TIMEOUT api-syncagent
 
-  kubectl wait --namespace default \
+  kubectl --context kind-platform-mesh wait --namespace default \
     --for=condition=Ready helmreleases \
     --timeout=$KUBECTL_WAIT_TIMEOUT example-httpbin-provider
 
-  kubectl wait --namespace default \
+  kubectl --context kind-platform-mesh wait --namespace default \
     --for=condition=Ready helmreleases \
     --timeout=$KUBECTL_WAIT_TIMEOUT openbao-instance
 
-  kubectl wait --namespace default \
+  kubectl --context kind-platform-mesh wait --namespace default \
     --for=condition=Ready helmreleases \
     --timeout=$KUBECTL_WAIT_TIMEOUT openbao-operator
 

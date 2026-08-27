@@ -14,7 +14,7 @@ webhooks:
       namespace: {{ .Release.Namespace }}
       path: "/validate-core-platform-mesh-io-v1alpha1-identityproviderconfiguration"
       port: {{ .Values.webhooks.port }}
-  failurePolicy: Fail
+  failurePolicy: Ignore
   name: vidp.kb.io
   rules:
   - apiGroups:

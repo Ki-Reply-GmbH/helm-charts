@@ -112,5 +112,5 @@ spec:
             registrationAllowed: true
             values:
           extraArgs:
-          - --kcp-front-proxy-port=8443
+          - --kcp-front-proxy-port=6443
           - --subroutines-feature-toggles-enabled=true

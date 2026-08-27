@@ -212,8 +212,24 @@ spec:
                         default: true
                         description: Enabled enables OIDC authentication.
                         type: boolean
-                      keycloakUrl:
-                        description: KeycloakURL is the Keycloak discovery URL.
+                      keycloakBaseUrl:
+                        description: |-
+                          KeycloakBaseURL is the base URL of the Keycloak server (without realm path).
+                          The operator appends /realms/<realmId> to build the full OIDC discovery URL.
+                          Example: "http://keycloak.platform-mesh-system.svc.cluster.local/keycloak"
+                        type: string
+                      providerConfigRef:
+                        default: default
+                        description: ProviderConfigRef is the name of the Crossplane
+                          ProviderConfig for Keycloak. Used when realmId is set (proactive
+                          OIDC client provisioning via Crossplane).
+                        type: string
+                      realmId:
+                        description: |-
+                          RealmID is the Keycloak realm ID to use for OIDC provisioning.
+                          When omitted, the realm ID is derived automatically from the KCP workspace path:
+                          for workspace path "root:orgs:<org-name>:<account-name>", realmId = "<org-name>".
+                          When set explicitly, this value takes precedence over the derived value.
                         type: string
                     type: object
                 type: object
@@ -221,15 +237,12 @@ spec:
                 - message: exactly one of oidc, appRole, or jwt must be specified
                   rule: '(has(self.oidc) ? 1 : 0) + (has(self.appRole) ? 1 : 0) +
                     (has(self.jwt) ? 1 : 0) == 1'
-                - message: keycloakUrl is required when OIDC is enabled
-                  rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.keycloakUrl)
-                    && size(self.oidc.keycloakUrl) > 0)'
+                - message: keycloakBaseUrl is required when OIDC is enabled
+                  rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.keycloakBaseUrl)
+                    && size(self.oidc.keycloakBaseUrl) > 0)'
                 - message: clientId is required when OIDC is enabled
                   rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.clientId)
                     && size(self.oidc.clientId) > 0)'
-                - message: clientSecretRef.name is required when OIDC is enabled
-                  rule: '!has(self.oidc) || !self.oidc.enabled || (has(self.oidc.clientSecretRef)
-                    && size(self.oidc.clientSecretRef.name) > 0)'
                 - message: exactly one of oidcDiscoveryUrl, jwksUrl, or jwtValidationPubkeys
                     must be provided when JWT is enabled
                   rule: '!has(self.jwt) || !self.jwt.enabled || ((has(self.jwt.oidcDiscoveryUrl)
@@ -383,6 +396,7 @@ spec:
                 description: Phase is the current phase of namespace provisioning.
                 enum:
                 - Pending
+                - ProvisioningOIDCClient
                 - CreatingNamespace
                 - ConfiguringAuth
                 - Ready

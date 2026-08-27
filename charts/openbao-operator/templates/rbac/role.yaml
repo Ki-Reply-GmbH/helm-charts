@@ -59,4 +59,28 @@ rules:
   - {{ include "openbao-operator.serviceAccountName" . }}
   verbs:
   - create
+- apiGroups:
+  - openidclient.keycloak.crossplane.io
+  resources:
+  - clients
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openidgroup.keycloak.crossplane.io
+  resources:
+  - groupmembershipprotocolmappers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 {{- end }}
