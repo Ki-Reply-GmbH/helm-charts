@@ -141,8 +141,15 @@ openfga:
 traefik:
   # -- toggle to enable traefik CORS filter in HTTPRoute
   enabled: true
-  # -- list of origins allowed for CORS (used by Traefik middleware)
-  accessControlAllowOriginList: []
+  # -- list of origins allowed for CORS (used by Traefik middleware).
+  # Entries must be exact origin matches: Traefik's accessControlAllowOriginList
+  # only treats "*" and "null" as special values, so subdomain patterns such as
+  # "https://*.portal.localhost:8443" never match anything (use
+  # accessControlAllowOriginListRegex if a pattern is genuinely needed).
+  # Consequence: every provider UI served under <name>.services.portal.localhost
+  # needs its own explicit entry here.
+  accessControlAllowOriginList:
+    - "https://openbao-ui.services.portal.localhost:8443"
 
 keycloak:
   gatewayApi:

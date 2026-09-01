@@ -67,3 +67,36 @@ spec:
           - "portal.localhost"
           - "kcp.localhost"
           - "root.kcp.localhost"
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: openbao-ui
+  namespace: default
+spec:
+  dependsOn:
+    - name: openbao-operator
+  chart:
+    spec:
+      chart: openbao-ui
+      version: "0.1.0"
+      sourceRef:
+        kind: HelmRepository
+        name: openbao-local
+        namespace: flux-system
+  interval: 1m
+  # Release name is load-bearing: the ContentConfiguration applied into kcp resolves
+  # this UI at <release>-openbao-ui.openbao-provider.svc.cluster.local.
+  releaseName: openbao-ui
+  targetNamespace: openbao-provider
+  timeout: 15m # use 15m when stable
+  values:
+    # Local setup reaches the UI through the shared platform-mesh gateway,
+    # not the public ingress host used in real environments.
+    ingress:
+      enabled: false
+    httpRoute:
+      enabled: true
+      port: 8443
+      hostnames:
+        - openbao-ui.services.portal.localhost

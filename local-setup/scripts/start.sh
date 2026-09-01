@@ -66,7 +66,7 @@ patch_ocm_030_kcp_ports() {
       kubectl patch rootshard -n platform-mesh-system root --type merge \
         -p '{"spec":{"external":{"hostname":"localhost","port":8443}}}' >/dev/null
       kubectl patch frontproxy -n platform-mesh-system frontproxy --type merge \
-        -p '{"spec":{"external":{"hostname":"localhost","port":6443}}}' >/dev/null
+        -p '{"spec":{"external":{"hostname":"localhost","port":8443}}}' >/dev/null
       return 0
     fi
     sleep 2
@@ -151,8 +151,10 @@ fi
 echo -e "${COL}[$(date '+%H:%M:%S')] Push local helm charts to local registry ${COL_RES}"
 helm package charts/openbao-instance -d /tmp/charts
 helm package charts/openbao-operator -d /tmp/charts
+helm package charts/openbao-ui -d /tmp/charts
 helm push /tmp/charts/openbao-instance-*.tgz oci://localhost:5001/helm-charts --plain-http
 helm push /tmp/charts/openbao-operator-*.tgz oci://localhost:5001/helm-charts --plain-http
+helm push /tmp/charts/openbao-ui-*.tgz oci://localhost:5001/helm-charts --plain-http
 
 # Force Flux to pick up newly pushed charts if the cluster is already running
 if check_kind_cluster 2>/dev/null; then
@@ -160,6 +162,7 @@ if check_kind_cluster 2>/dev/null; then
   kubectl annotate helmrepository openbao-local -n flux-system reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
   kubectl annotate helmrelease openbao-instance -n default reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
   kubectl annotate helmrelease openbao-operator -n default reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
+  kubectl annotate helmrelease openbao-ui -n default reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite 2>/dev/null || true
 fi
 
 # Check if kind cluster is already running, if not create it
@@ -203,9 +206,31 @@ if ! check_kind_cluster; then
         
     fi
 fi
-# load local openbao-operator image - must be manually created beforehand
-echo -e "${COL}[$(date '+%H:%M:%S')] Loading openbao-operator:local image into kind cluster ${COL_RES}"
-kind load docker-image openbao-operator:local --name platform-mesh
+# Build and load the openbao operator + UI images. Both charts pin pullPolicy:Never,
+# so the images must be present in the cluster's containerd store; kind load normalizes
+# a bare name:tag to docker.io/library/<name>:<tag>, which is what the charts render.
+OPENBAO_OPERATOR_REPO="${OPENBAO_OPERATOR_REPO:-$SCRIPT_DIR/../../../openbao-operator}"
+SKIP_OPENBAO_BUILD="${SKIP_OPENBAO_BUILD:-false}"
+
+if [ "$SKIP_OPENBAO_BUILD" != "true" ]; then
+    if [ ! -d "$OPENBAO_OPERATOR_REPO" ]; then
+        echo -e "${RED}[$(date '+%H:%M:%S')] openbao-operator checkout not found at: $OPENBAO_OPERATOR_REPO ${COL_RES}"
+        echo -e "${RED}   Set OPENBAO_OPERATOR_REPO=/path/to/openbao-operator, or SKIP_OPENBAO_BUILD=true to reuse already-loaded images. ${COL_RES}"
+        exit 1
+    fi
+    echo -e "${COL}[$(date '+%H:%M:%S')] Building openbao-operator:local and openbao-ui:local ${COL_RES}"
+    docker build -t openbao-operator:local "$OPENBAO_OPERATOR_REPO"
+    docker build -t openbao-ui:local "$OPENBAO_OPERATOR_REPO/ui"
+fi
+
+echo -e "${COL}[$(date '+%H:%M:%S')] Loading openbao images into kind cluster ${COL_RES}"
+kind load docker-image openbao-operator:local openbao-ui:local --name platform-mesh
+
+# Same image tag with new content needs a restart to be picked up under pullPolicy:Never.
+# No-op on a fresh cluster where these deployments do not exist yet.
+for openbao_deploy in openbao-operator openbao-ui-openbao-ui; do
+    kubectl rollout restart "deployment/$openbao_deploy" -n openbao-provider 2>/dev/null || true
+done
 
 mkdir -p $SCRIPT_DIR/certs
 $MKCERT_CMD -cert-file=$SCRIPT_DIR/certs/cert.crt -key-file=$SCRIPT_DIR/certs/cert.key "localhost" "*.localhost" "portal.localhost" "*.portal.localhost" "*.services.portal.localhost" "oci-registry-docker-registry.registry.svc.cluster.local" 2>/dev/null
@@ -371,6 +396,10 @@ if [ "$EXAMPLE_DATA" = true ]; then
   kubectl wait --namespace default \
     --for=condition=Ready helmreleases \
     --timeout=$KUBECTL_WAIT_TIMEOUT openbao-operator
+
+  kubectl wait --namespace default \
+    --for=condition=Ready helmreleases \
+    --timeout=$KUBECTL_WAIT_TIMEOUT openbao-ui
 
 fi
 

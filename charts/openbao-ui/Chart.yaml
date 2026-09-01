@@ -1,0 +1,11 @@
+apiVersion: v2
+name: openbao-ui
+description: OpenBao provider UI for the Platform Mesh portal (React + UI5 Web Components).
+type: application
+version: 0.1.0
+appVersion: 0.1.0
+home: https://github.com/apeirora/openbao-operator
+sources:
+  - https://github.com/apeirora/openbao-operator
+maintainers:
+  - name: ApeiroRA
