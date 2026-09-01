@@ -65,8 +65,12 @@ spec:
           shards: []
           frontProxy:
             clusterIP: "10.96.0.100"
-            port: 6443
+            port: 8443
         traefik:
+          # This list fully replaces the infra chart's default (Helm replaces lists,
+          # it does not merge them), so provider UI origins must be repeated here.
+          # Entries must be exact origins - Traefik only treats "*" and "null" as
+          # special, so the "*.portal.localhost" style entries below match nothing.
           accessControlAllowOriginList:
           - "http://localhost:4200"
           - "http://localhost:4300"
@@ -75,6 +79,7 @@ spec:
           - "http://sub.localhost:4300"
           - "https://portal.localhost:8443"
           - "https://*.portal.localhost:8443"
+          - "https://openbao-ui.services.portal.localhost:8443"
         cors:
           enabled: true
         hostAliases:
@@ -188,4 +193,4 @@ spec:
     virtual-workspaces:
       values:
         deployment:
-          serverUrl: https://frontproxy-front-proxy.platform-mesh-system:6443
+          serverUrl: https://frontproxy-front-proxy.platform-mesh-system:8443
