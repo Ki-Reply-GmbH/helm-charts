@@ -206,6 +206,7 @@ fi
 # load local openbao-operator image - must be manually created beforehand
 echo -e "${COL}[$(date '+%H:%M:%S')] Loading openbao-operator:local image into kind cluster ${COL_RES}"
 kind load docker-image openbao-operator:local --name platform-mesh
+kubectl --context kind-platform-mesh rollout restart deployment openbao-operator -n openbao-provider 2>/dev/null || true
 
 mkdir -p $SCRIPT_DIR/certs
 $MKCERT_CMD -cert-file=$SCRIPT_DIR/certs/cert.crt -key-file=$SCRIPT_DIR/certs/cert.key "localhost" "*.localhost" "portal.localhost" "*.portal.localhost" "*.services.portal.localhost" "oci-registry-docker-registry.registry.svc.cluster.local" 2>/dev/null

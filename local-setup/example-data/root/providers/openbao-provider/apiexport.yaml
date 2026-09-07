@@ -7,14 +7,13 @@ metadata:
   name: openbao.apeiro.dev
 spec:
   latestResourceSchemas:
-  - v260713-add438d.openbaonamespaces.openbao.apeiro.dev
+  - v260904-d8754ed.openbaonamespaces.openbao.apeiro.dev
   permissionClaims:
   - all: true
     resource: namespaces
   - all: true
     resource: secrets
   - all: true
-    group: events.k8s.io
     resource: events
   - all: true
     group: core.kcp.io
