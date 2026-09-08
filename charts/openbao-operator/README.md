@@ -1,252 +1,114 @@
-# OpenBao Operator Helm Chart
+# openbao-operator
 
-Kubernetes operator with built-in multicluster runtime for managing OpenBaoTenant resources.
+OpenBao operator with multicluster runtime for managing OpenBaoTenant resources
 
-## Purpose
+![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+## Values
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| affinity | object | `{}` |  |
+| controllerManager.serviceAccount.annotations | object | `{}` |  |
+| controllerManager.serviceAccountName | string | `"openbao-operator-controller-manager"` |  |
+| enabled | bool | `true` |  |
+| fullnameOverride | string | `""` |  |
+| healthProbe.bindAddress | string | `":8081"` |  |
+| hostAliases | list | `[]` |  |
+| image.pullPolicy | string | `"Never"` |  |
+| image.registry | string | `""` |  |
+| image.repository | string | `"openbao-operator"` |  |
+| image.tag | string | `"local"` |  |
+| imagePullSecrets | list | `[]` |  |
+| leaderElection.enabled | bool | `true` |  |
+| metrics.enable | bool | `true` |  |
+| nameOverride | string | `""` |  |
+| nodeSelector | object | `{}` |  |
+| operator.adminPolicyPrivileges | string | `"create,read,update,delete,list"` |  |
+| operator.apiexportEndpointsliceName | string | `"openbao.apeiro.dev"` |  |
+| operator.kcpKubeconfigSecretName | string | `"openbao-kubeconfig"` |  |
+| operator.openbaoAddress | string | `"http://openbao.openbao-provider.svc:8200"` |  |
+| operator.openbaoAuthMethod | string | `"kubernetes"` |  |
+| operator.openbaoDisplayUrl | string | `""` |  |
+| operator.openbaoK8sMountPath | string | `"kubernetes"` |  |
+| operator.openbaoK8sRole | string | `"openbao-operator"` |  |
+| operator.openbaoK8sTokenPath | string | `"/var/run/secrets/kubernetes.io/serviceaccount/token"` |  |
+| operator.resources.limits.cpu | string | `"500m"` |  |
+| operator.resources.limits.memory | string | `"128Mi"` |  |
+| operator.resources.requests.cpu | string | `"100m"` |  |
+| operator.resources.requests.memory | string | `"64Mi"` |  |
+| podAnnotations | object | `{}` |  |
+| podLabels | object | `{}` |  |
+| prometheus.enable | bool | `false` |  |
+| rbac.enable | bool | `true` |  |
+| replicaCount | int | `1` |  |
+| tolerations | list | `[]` |  |
 
-This chart deploys the OpenBao operator which:
-- Manages `OpenBaoTenant` custom resources
-- Creates isolated OpenBao namespaces per tenant
-- Provisions authentication methods (AppRole, OIDC)
-- Generates credentials and stores them as Kubernetes Secrets
-- **Native multicluster support** via KCP integration (no api-syncagent needed)
+## Overriding Values
 
-## Key Feature: Built-in Multicluster Runtime
+The values in the `defaults:` section can be reused from other charts by using the lookup function "common.getKeyValue". It implements lookup on three levels:
 
-Unlike other operators, this operator has **native KCP support**:
-- Uses `github.com/kcp-dev/multicluster-provider` for APIExport discovery
-- Uses `sigs.k8s.io/multicluster-runtime` for cross-cluster reconciliation
-- Watches `APIExportEndpointSlice` to discover logical clusters
-- Reconciles OpenBaoTenant resources in any workspace where APIExport is bound
+1. Looks for `keyOverride` in the chart's values.yaml
+2. Looks for `global.key` in the chart's or parent chart's values.yaml
+3. Uses the `key` in the chart's values.yaml
+4. Uses the `common.defaults.key` value from the table below.
 
-**No api-syncagent required!**
+1 has precedence over 2 over 3 over 4 respectively. This approach allows for individual charts to have minimal configuration, while still being able to override parameters locally.
 
-## Installation
-
-```bash
-# Requires openbao-instance to be running
-helm install openbao-operator charts/openbao-operator \
-  -n openbao-provider
+Example
 ```
-
-## Configuration
-
-### Key Values
-
-```yaml
-# Operator configuration
-operator:
-  # OpenBao connection
-  openbaoAddress: "http://openbao.openbao-provider.svc:8200"
-  openbaoDisplayUrl: ""            # Optional browser-facing URL published in tenant status
-  openbaoAuthMethod: "kubernetes"  # kubernetes or token
-  openbaoK8sRole: "openbao-operator"
-
-  # Multicluster runtime
-  apiexportEndpointsliceName: "openbao.apeiro.dev"  # APIExportEndpointSlice to watch
-
-  # Resources
-  resources:
-    limits:
-      cpu: 500m
-      memory: 128Mi
-    requests:
-      cpu: 100m
-      memory: 64Mi
-
-# RBAC
-rbac:
-  enable: true
-
-# Leader election
-leaderElection:
-  enabled: true
+1) .Values.deployment.resources.limits.memoryOverride = 4096MB
+2) .Values.global.deployment.resources.limits.memory = 2048MB
+3) .Values.deployment.resources.limits.memory = 1024MB
+4) .Values.common.defaults.deployment.resources.limits.memory = default 512MB
 ```
+# openbao-operator
 
-## OpenBaoTenant CRD
+![Version: 0.1.1](https://img.shields.io/badge/Version-0.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.1.0](https://img.shields.io/badge/AppVersion-v0.1.0-informational?style=flat-square)
 
-The operator reconciles `OpenBaoTenant` resources:
+OpenBao operator with multicluster runtime for managing OpenBaoTenant resources
 
-```yaml
-apiVersion: openbao.apeiro.dev/v1
-kind: OpenBaoTenant
-metadata:
-  name: my-app
-spec:
-  namespace: my-app          # OpenBao namespace to create
-  auth:
-    appRole:                 # Machine authentication
-      enabled: true
-      secretRef:
-        name: my-app-approle
-        namespace: default
-```
+## Maintainers
 
-**Operator Actions:**
-1. Creates OpenBao namespace `my-app/`
-2. Enables AppRole auth method in that namespace
-3. Generates RoleID and SecretID
-4. Stores credentials in Kubernetes Secret `my-app-approle`
-5. Updates tenant status with access information
+| Name | Email | Url |
+| ---- | ------ | --- |
+| Platform Mesh Team |  |  |
 
-## How Multicluster Works
+## Values
 
-### 1. APIExport in KCP
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| affinity | object | `{}` |  |
+| controllerManager.serviceAccount.annotations | object | `{}` |  |
+| controllerManager.serviceAccountName | string | `"openbao-operator-controller-manager"` |  |
+| enabled | bool | `true` |  |
+| fullnameOverride | string | `""` |  |
+| healthProbe.bindAddress | string | `":8081"` |  |
+| hostAliases | list | `[]` |  |
+| image.pullPolicy | string | `"Never"` |  |
+| image.registry | string | `""` |  |
+| image.repository | string | `"openbao-operator"` |  |
+| image.tag | string | `"local"` |  |
+| imagePullSecrets | list | `[]` |  |
+| leaderElection.enabled | bool | `true` |  |
+| metrics.enable | bool | `true` |  |
+| nameOverride | string | `""` |  |
+| nodeSelector | object | `{}` |  |
+| operator.adminPolicyPrivileges | string | `"create,read,update,delete,list"` |  |
+| operator.apiexportEndpointsliceName | string | `"openbao.apeiro.dev"` |  |
+| operator.kcpKubeconfigSecretName | string | `"openbao-kubeconfig"` |  |
+| operator.openbaoAddress | string | `"http://openbao.openbao-provider.svc:8200"` |  |
+| operator.openbaoAuthMethod | string | `"kubernetes"` |  |
+| operator.openbaoDisplayUrl | string | `""` |  |
+| operator.openbaoK8sMountPath | string | `"kubernetes"` |  |
+| operator.openbaoK8sRole | string | `"openbao-operator"` |  |
+| operator.openbaoK8sTokenPath | string | `"/var/run/secrets/kubernetes.io/serviceaccount/token"` |  |
+| operator.resources.limits.cpu | string | `"500m"` |  |
+| operator.resources.limits.memory | string | `"128Mi"` |  |
+| operator.resources.requests.cpu | string | `"100m"` |  |
+| operator.resources.requests.memory | string | `"64Mi"` |  |
+| podAnnotations | object | `{}` |  |
+| podLabels | object | `{}` |  |
+| prometheus.enable | bool | `false` |  |
+| rbac.enable | bool | `true` |  |
+| replicaCount | int | `1` |  |
+| tolerations | list | `[]` |  |
 
-APIExport created in `root:providers:openbao-provider` workspace:
-
-```yaml
-apiVersion: apis.kcp.io/v1alpha1
-kind: APIExport
-metadata:
-  name: openbao.apeiro.dev
-```
-
-### 2. Operator Discovery
-
-Operator watches for APIExportEndpointSlice with name `openbao.apeiro.dev`:
-
-```bash
---apiexport-endpointslice-name=openbao.apeiro.dev
-```
-
-### 3. Logical Cluster Resolution
-
-When OpenBaoTenant created in org workspace:
-1. KCP binds APIExport to org workspace via APIBinding
-2. APIExportEndpointSlice updated with org workspace endpoint
-3. Operator discovers the new logical cluster
-4. Operator watches for OpenBaoTenant in that cluster
-5. Operator reconciles tenant against OpenBao instance
-
-## Authentication Methods
-
-### Kubernetes Auth (Default)
-
-Operator uses its ServiceAccount token to authenticate to OpenBao:
-
-```yaml
-operator:
-  openbaoAuthMethod: "kubernetes"
-  openbaoK8sRole: "openbao-operator"
-```
-
-**Prerequisites:**
-- Init job must configure Kubernetes auth in OpenBao
-- Operator role must be created with appropriate permissions
-
-### Token Auth (Development Only)
-
-For testing, you can use a static token:
-
-```yaml
-operator:
-  openbaoAuthMethod: "token"
-env:
-  - name: OPENBAO_TOKEN
-    value: "root"  # or from secret
-```
-
-**Not recommended for production!**
-
-## Verification
-
-```bash
-# Check operator is running
-kubectl get pods -n openbao-provider -l control-plane=controller-manager
-
-# Check operator logs
-kubectl logs -n openbao-provider deployment/openbao-operator
-
-# Expected: "OpenBao health check OK" and "starting manager"
-
-# Check CRD is installed
-kubectl get crd openbaotenants.openbao.apeiro.dev
-
-# Create a test tenant
-kubectl apply -f examples/tenant.yaml
-
-# Check tenant status
-kubectl get openbaotenant my-app -o yaml
-```
-
-## Troubleshooting
-
-### Operator Can't Authenticate to OpenBao
-
-**Symptoms:** Logs show "403 Forbidden"
-
-**Check:**
-```bash
-kubectl logs -n openbao-provider deployment/openbao-operator | grep -i auth
-```
-
-**Verify K8s auth is configured:**
-```bash
-kubectl exec -n openbao-provider deployment/openbao-instance -- bao auth list
-kubectl exec -n openbao-provider deployment/openbao-instance -- \
-  bao read auth/kubernetes/role/openbao-operator
-```
-
-**Fix:** Ensure init job completed successfully.
-
-### Tenant Stuck in Pending
-
-**Symptoms:** OpenBaoTenant never reaches Ready status
-
-**Check:**
-```bash
-kubectl describe openbaotenant my-app
-kubectl logs -n openbao-provider deployment/openbao-operator | grep my-app
-```
-
-**Common causes:**
-- Operator authentication issues
-- Invalid namespace name
-- Namespace already exists in OpenBao
-
-### Multicluster Discovery Not Working
-
-**Symptoms:** Operator doesn't see tenants created in KCP
-
-**Check:**
-```bash
-kubectl logs -n openbao-provider deployment/openbao-operator | grep -i "apiexport\|cluster"
-```
-
-**Verify APIExport exists:**
-```bash
-KUBECONFIG=.secret/kcp/admin.kubeconfig kubectl get apiexport openbao.apeiro.dev \
-  --server=https://localhost:8443/clusters/root:providers:openbao-provider
-```
-
-**Check operator flag:**
-```bash
-kubectl get deployment openbao-operator -n openbao-provider -o yaml | \
-  grep apiexport-endpointslice-name
-```
-
-## RBAC Permissions
-
-The operator requires:
-
-- **OpenBaoTenant**: Full CRUD + status/finalizers
-- **Secrets**: Create, read, update, delete (for storing credentials)
-- **Events**: Create, patch (for recording events)
-- **Leases** (coordination.k8s.io): Leader election
-
-See [templates/rbac/](templates/rbac/) for complete RBAC manifests.
-
-## Chart Values Reference
-
-See [values.yaml](values.yaml) for complete list of configurable values.
-
-## Related Charts
-
-- [openbao-instance](../openbao-instance/README.md) - OpenBao server deployment
-
-## Resources
-
-- OpenBao Operator Source: `/home/ldeppewsl/docs/openbao/platform-mesh/git/openbao-operator/`
-- Multicluster Runtime: https://github.com/kubernetes-sigs/multicluster-runtime
-- KCP Multicluster Provider: https://github.com/kcp-dev/multicluster-provider

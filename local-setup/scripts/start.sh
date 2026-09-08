@@ -149,6 +149,7 @@ fi
 
 # Push local charts into local registry
 echo -e "${COL}[$(date '+%H:%M:%S')] Push local helm charts to local registry ${COL_RES}"
+rm -rf /tmp/charts/openbao-instance-*.tgz /tmp/charts/openbao-operator-*.tgz
 helm package charts/openbao-instance -d /tmp/charts
 helm package charts/openbao-operator -d /tmp/charts
 helm push /tmp/charts/openbao-instance-*.tgz oci://localhost:5001/helm-charts --plain-http

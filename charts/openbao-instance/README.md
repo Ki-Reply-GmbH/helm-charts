@@ -1,130 +1,134 @@
-# OpenBao Instance Helm Chart
+# openbao-instance
 
-Deploys OpenBao secrets management server in development mode.
+OpenBao secrets management server for local development (dev mode)
 
-## Purpose
+![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+## Values
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| affinity | object | `{}` |  |
+| config.devMode | bool | `false` |  |
+| config.storage.path | string | `"/vault/data"` |  |
+| config.storage.size | string | `"1Gi"` |  |
+| config.storage.type | string | `"file"` |  |
+| fullnameOverride | string | `""` |  |
+| image.pullPolicy | string | `"IfNotPresent"` |  |
+| image.registry | string | `"docker.io"` |  |
+| image.repository | string | `"openbao/openbao"` |  |
+| image.tag | string | `"2.5.4"` |  |
+| imagePullSecrets | list | `[]` |  |
+| initJob.backoffLimit | int | `5` |  |
+| initJob.enabled | bool | `true` |  |
+| initJob.image.registry | string | `"docker.io"` |  |
+| initJob.image.repository | string | `"openbao/openbao"` |  |
+| initJob.image.tag | string | `"2.5.4"` |  |
+| initJob.openbaoAddress | string | `"http://openbao:8200"` |  |
+| initJob.operatorNamespace | string | `"openbao-provider"` |  |
+| initJob.operatorPolicyName | string | `"openbao-operator"` |  |
+| initJob.operatorRole | string | `"openbao-operator"` |  |
+| initJob.operatorServiceAccount | string | `"openbao-operator-controller-manager"` |  |
+| initJob.resources.limits.cpu | string | `"200m"` |  |
+| initJob.resources.limits.memory | string | `"128Mi"` |  |
+| initJob.resources.requests.cpu | string | `"50m"` |  |
+| initJob.resources.requests.memory | string | `"64Mi"` |  |
+| initJob.restartPolicy | string | `"Never"` |  |
+| nameOverride | string | `""` |  |
+| nodeSelector | object | `{}` |  |
+| podSecurityContext.fsGroup | int | `1000` |  |
+| podSecurityContext.runAsNonRoot | bool | `true` |  |
+| replicaCount | int | `1` |  |
+| resources.limits.cpu | string | `"500m"` |  |
+| resources.limits.memory | string | `"256Mi"` |  |
+| resources.requests.cpu | string | `"100m"` |  |
+| resources.requests.memory | string | `"128Mi"` |  |
+| securityContext.capabilities.add[0] | string | `"IPC_LOCK"` |  |
+| securityContext.runAsNonRoot | bool | `true` |  |
+| securityContext.runAsUser | int | `100` |  |
+| service.annotations | object | `{}` |  |
+| service.port | int | `8200` |  |
+| service.type | string | `"ClusterIP"` |  |
+| serviceAccount.annotations | object | `{}` |  |
+| serviceAccount.create | bool | `true` |  |
+| serviceAccount.name | string | `""` |  |
+| tolerations | list | `[]` |  |
 
-This chart deploys OpenBao for local development and testing. It includes an init job that automatically configures Kubernetes authentication for the operator.
+## Overriding Values
 
-## Features
+The values in the `defaults:` section can be reused from other charts by using the lookup function "common.getKeyValue". It implements lookup on three levels:
 
-- **Kubernetes Auth Bootstrap**: Init job configures K8s authentication automatically
-- **Operator Ready**: Pre-configured for OpenBao operator integration
-- **Health Probes**: Liveness and readiness probes configured
+1. Looks for `keyOverride` in the chart's values.yaml
+2. Looks for `global.key` in the chart's or parent chart's values.yaml
+3. Uses the `key` in the chart's values.yaml
+4. Uses the `common.defaults.key` value from the table below.
 
-## Installation
+1 has precedence over 2 over 3 over 4 respectively. This approach allows for individual charts to have minimal configuration, while still being able to override parameters locally.
 
-```bash
-helm install openbao-instance charts/openbao-instance \
-  -n openbao-provider --create-namespace
+Example
 ```
-
-## Configuration
-
-### Key Values
-
-```yaml
-# OpenBao server configuration
-config:
-  devMode: true                    # Use dev mode (NOT for production)
-  devRootToken: "root"             # Root token (change in production)
-  devListenAddress: "0.0.0.0:8200"
-
-# Init job configuration
-initJob:
-  enabled: true                                          # Enable K8s auth bootstrap
-  operatorServiceAccount: "openbao-operator-controller-manager"
-  operatorNamespace: "openbao-provider"
-  operatorRole: "openbao-operator"
-
-# Resources
-resources:
-  limits:
-    cpu: 500m
-    memory: 256Mi
-  requests:
-    cpu: 100m
-    memory: 128Mi
+1) .Values.deployment.resources.limits.memoryOverride = 4096MB
+2) .Values.global.deployment.resources.limits.memory = 2048MB
+3) .Values.deployment.resources.limits.memory = 1024MB
+4) .Values.common.defaults.deployment.resources.limits.memory = default 512MB
 ```
+# openbao-instance
 
-## Dev Mode vs Production
+![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.5.4](https://img.shields.io/badge/AppVersion-2.5.4-informational?style=flat-square)
 
-### Dev Mode (This Chart)
+OpenBao secrets management server for local development (dev mode)
 
-✅ **Advantages:**
-- Auto-unsealed (no manual unsealing)
-- In-memory storage (no persistent volume needed)
-- Fast startup
-- Simple configuration
+## Maintainers
 
-❌ **Limitations:**
-- Data lost on pod restart
-- Single replica only
-- Not suitable for production
+| Name | Email | Url |
+| ---- | ------ | --- |
+| Platform Mesh Team |  |  |
 
-### Production Mode (Future)
+## Values
 
-For production, you would need:
-- Raft storage backend with PersistentVolumeClaims
-- Manual unsealing or auto-unseal with KMS
-- 3+ replicas for high availability
-- TLS enabled
-- Audit logging configured
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| affinity | object | `{}` |  |
+| config.devMode | bool | `false` |  |
+| config.storage.path | string | `"/vault/data"` |  |
+| config.storage.size | string | `"1Gi"` |  |
+| config.storage.type | string | `"file"` |  |
+| fullnameOverride | string | `""` |  |
+| image.pullPolicy | string | `"IfNotPresent"` |  |
+| image.registry | string | `"docker.io"` |  |
+| image.repository | string | `"openbao/openbao"` |  |
+| image.tag | string | `"2.5.4"` |  |
+| imagePullSecrets | list | `[]` |  |
+| initJob.backoffLimit | int | `5` |  |
+| initJob.enabled | bool | `true` |  |
+| initJob.image.registry | string | `"docker.io"` |  |
+| initJob.image.repository | string | `"openbao/openbao"` |  |
+| initJob.image.tag | string | `"2.5.4"` |  |
+| initJob.openbaoAddress | string | `"http://openbao:8200"` |  |
+| initJob.operatorNamespace | string | `"openbao-provider"` |  |
+| initJob.operatorPolicyName | string | `"openbao-operator"` |  |
+| initJob.operatorRole | string | `"openbao-operator"` |  |
+| initJob.operatorServiceAccount | string | `"openbao-operator-controller-manager"` |  |
+| initJob.resources.limits.cpu | string | `"200m"` |  |
+| initJob.resources.limits.memory | string | `"128Mi"` |  |
+| initJob.resources.requests.cpu | string | `"50m"` |  |
+| initJob.resources.requests.memory | string | `"64Mi"` |  |
+| initJob.restartPolicy | string | `"Never"` |  |
+| nameOverride | string | `""` |  |
+| nodeSelector | object | `{}` |  |
+| podSecurityContext.fsGroup | int | `1000` |  |
+| podSecurityContext.runAsNonRoot | bool | `true` |  |
+| replicaCount | int | `1` |  |
+| resources.limits.cpu | string | `"500m"` |  |
+| resources.limits.memory | string | `"256Mi"` |  |
+| resources.requests.cpu | string | `"100m"` |  |
+| resources.requests.memory | string | `"128Mi"` |  |
+| securityContext.capabilities.add[0] | string | `"IPC_LOCK"` |  |
+| securityContext.runAsNonRoot | bool | `true` |  |
+| securityContext.runAsUser | int | `100` |  |
+| service.annotations | object | `{}` |  |
+| service.port | int | `8200` |  |
+| service.type | string | `"ClusterIP"` |  |
+| serviceAccount.annotations | object | `{}` |  |
+| serviceAccount.create | bool | `true` |  |
+| serviceAccount.name | string | `""` |  |
+| tolerations | list | `[]` |  |
 
-## Verification
-
-```bash
-# Check pod is running
-kubectl get pods -n openbao-provider -l app=openbao
-
-# Check OpenBao status
-kubectl exec -n openbao-provider deployment/openbao-instance -- bao status
-
-# Expected: Sealed: false, Initialized: true
-
-# Verify init job completed
-kubectl get jobs -n openbao-provider
-
-# Check K8s auth is enabled
-kubectl exec -n openbao-provider deployment/openbao-instance -- bao auth list
-```
-
-## Troubleshooting
-
-### Pod CrashLoopBackOff
-
-Check logs:
-```bash
-kubectl logs -n openbao-provider -l app=openbao
-```
-
-Common causes:
-- Image pull failure
-- Resource limits too low
-- Port 8200 already in use
-
-### Init Job Failed
-
-Check job logs:
-```bash
-kubectl logs -n openbao-provider job/openbao-instance-init-k8s-auth
-```
-
-Re-run init job:
-```bash
-kubectl delete job -n openbao-provider openbao-instance-init-k8s-auth
-helm upgrade openbao-instance charts/openbao-instance -n openbao-provider
-```
-
-## Chart Values Reference
-
-See [values.yaml](values.yaml) for complete list of configurable values.
-
-## Related Charts
-
-- [openbao-operator](../openbao-operator/README.md) - Operator that manages OpenBaoTenant resources
-
-## Resources
-
-- OpenBao Documentation: https://openbao.org/docs/
-- OpenBao GitHub: https://github.com/openbao/openbao

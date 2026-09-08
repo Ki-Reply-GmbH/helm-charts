@@ -2,7 +2,7 @@ apiVersion: apis.kcp.io/v1alpha1
 kind: APIResourceSchema
 metadata:
   creationTimestamp: null
-  name: v260904-d8754ed.openbaonamespaces.openbao.apeiro.dev
+  name: v260908-5778233.openbaonamespaces.openbao.apeiro.dev
 spec:
   group: openbao.apeiro.dev
   names:
@@ -267,6 +267,103 @@ spec:
               required:
               - name
               type: object
+            secretEngines:
+              description: SecretEngines defines the list of secret engines to mount
+                in this namespace
+              items:
+                description: SecretEngineSpec defines a single secret engine mount
+                  configuration
+                properties:
+                  config:
+                    description: Config defines the mount/tune configuration
+                    properties:
+                      allowedResponseHeaders:
+                        description: AllowedResponseHeaders are HTTP headers the plugin
+                          is allowed to emit
+                        items:
+                          type: string
+                        type: array
+                      auditNonHMACRequestKeys:
+                        description: AuditNonHMACRequestKeys are request keys that
+                          should not be HMAC-hashed in audit logs
+                        items:
+                          type: string
+                        type: array
+                      auditNonHMACResponseKeys:
+                        description: AuditNonHMACResponseKeys are response keys that
+                          should not be HMAC-hashed in audit logs
+                        items:
+                          type: string
+                        type: array
+                      defaultLeaseTTL:
+                        description: DefaultLeaseTTL is the default lease TTL (e.g.
+                          "1h", "86400")
+                        type: string
+                      forceNoCache:
+                        description: ForceNoCache disables caching for reads
+                        type: boolean
+                      listingVisibility:
+                        description: ListingVisibility controls visibility in the
+                          UI ("hidden" | "unauth")
+                        enum:
+                        - ""
+                        - hidden
+                        - unauth
+                        type: string
+                      maxLeaseTTL:
+                        description: MaxLeaseTTL is the maximum lease TTL (e.g. "24h")
+                        type: string
+                      passthroughRequestHeaders:
+                        description: PassthroughRequestHeaders are HTTP headers passed
+                          directly to the plugin
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  description:
+                    description: Description is an optional description of the mount
+                    type: string
+                  local:
+                    description: Local indicates the mount is local-only (ignored
+                      in replication)
+                    type: boolean
+                  options:
+                    additionalProperties:
+                      type: string
+                    description: 'Options are mount-specific options (e.g. {"version":
+                      "2"} for KV)'
+                    type: object
+                  path:
+                    description: |-
+                      Path is the mount path (e.g. "secret", "pki", "transit")
+                      Note: The regex intentionally constrains the path to a single segment (no slashes allowed)
+                      to prevent nested mount structures for this specific resource scope.
+                    maxLength: 63
+                    minLength: 1
+                    pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
+                    type: string
+                  sealWrap:
+                    description: SealWrap enables additional encryption with the Seal
+                      Key
+                    type: boolean
+                  type:
+                    description: Type is the engine type (e.g. "kv", "pki", "transit",
+                      "database")
+                    maxLength: 64
+                    minLength: 1
+                    type: string
+                    x-kubernetes-validations:
+                    - message: type of a secret engine is immutable once created
+                      rule: self == oldSelf
+                required:
+                - path
+                - type
+                type: object
+              maxItems: 50
+              type: array
+              x-kubernetes-list-map-keys:
+              - path
+              x-kubernetes-list-type: map
           required:
           - auth
           type: object
@@ -393,9 +490,11 @@ spec:
               description: Phase is the current phase of namespace provisioning.
               enum:
               - Pending
-              - ProvisioningOIDCClient
               - CreatingNamespace
+              - ProvisioningOIDCClient
               - ConfiguringAuth
+              - ConfiguringEngines
+              - ConfiguringKeycloak
               - Ready
               - Failed
               type: string
@@ -459,6 +558,31 @@ spec:
                     in OpenBao.
                   type: string
               type: object
+            secretEngines:
+              description: SecretEngines contains the status of mounted secret engines
+              items:
+                properties:
+                  accessor:
+                    description: Accessor is the mount identifier in OpenBao
+                    type: string
+                  message:
+                    description: Message contains state or error information
+                    type: string
+                  path:
+                    description: Path is the mount path
+                    type: string
+                  ready:
+                    description: Ready indicates if the engine is mounted and synchronized
+                    type: boolean
+                  type:
+                    description: Type is the engine type
+                    type: string
+                required:
+                - path
+                - ready
+                - type
+                type: object
+              type: array
           type: object
       type: object
       x-kubernetes-validations:

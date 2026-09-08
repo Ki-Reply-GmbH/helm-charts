@@ -42,7 +42,7 @@ spec:
   chart:
     spec:
       chart: openbao-operator
-      version: "0.1.0"
+      version: "0.1.1"
       sourceRef:
         kind: HelmRepository
         name: openbao-local
