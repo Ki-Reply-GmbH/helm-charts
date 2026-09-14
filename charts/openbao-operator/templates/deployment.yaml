@@ -49,6 +49,12 @@ spec:
         {{- if .Values.operator.openbaoDisplayUrl }}
         - --openbao-display-url={{ .Values.operator.openbaoDisplayUrl }}
         {{- end }}
+        {{- if .Values.operator.defaultOIDCKeycloakBaseURL }}
+        - --default-oidc-keycloak-base-url={{ .Values.operator.defaultOIDCKeycloakBaseURL }}
+        {{- end }}
+        {{- if .Values.operator.defaultOIDCClientID }}
+        - --default-oidc-client-id={{ .Values.operator.defaultOIDCClientID }}
+        {{- end }}
         - --openbao-auth-method={{ .Values.operator.openbaoAuthMethod }}
         - --openbao-k8s-role={{ .Values.operator.openbaoK8sRole }}
         - --openbao-k8s-mount-path={{ .Values.operator.openbaoK8sMountPath }}

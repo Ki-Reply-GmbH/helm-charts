@@ -24,6 +24,8 @@ OpenBao operator with multicluster runtime for managing OpenBaoTenant resources
 | nodeSelector | object | `{}` |  |
 | operator.adminPolicyPrivileges | string | `"create,read,update,delete,list"` |  |
 | operator.apiexportEndpointsliceName | string | `"openbao.apeiro.dev"` |  |
+| operator.defaultOIDCClientID | string | `"openbao"` |  |
+| operator.defaultOIDCKeycloakBaseURL | string | `""` |  |
 | operator.kcpKubeconfigSecretName | string | `"openbao-kubeconfig"` |  |
 | operator.openbaoAddress | string | `"http://openbao.openbao-provider.svc:8200"` |  |
 | operator.openbaoAuthMethod | string | `"kubernetes"` |  |
@@ -62,7 +64,7 @@ Example
 ```
 # openbao-operator
 
-![Version: 0.1.1](https://img.shields.io/badge/Version-0.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.1.0](https://img.shields.io/badge/AppVersion-v0.1.0-informational?style=flat-square)
+![Version: 0.1.2](https://img.shields.io/badge/Version-0.1.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.1.0](https://img.shields.io/badge/AppVersion-v0.1.0-informational?style=flat-square)
 
 OpenBao operator with multicluster runtime for managing OpenBaoTenant resources
 
@@ -94,6 +96,8 @@ OpenBao operator with multicluster runtime for managing OpenBaoTenant resources
 | nodeSelector | object | `{}` |  |
 | operator.adminPolicyPrivileges | string | `"create,read,update,delete,list"` |  |
 | operator.apiexportEndpointsliceName | string | `"openbao.apeiro.dev"` |  |
+| operator.defaultOIDCClientID | string | `"openbao"` |  |
+| operator.defaultOIDCKeycloakBaseURL | string | `""` |  |
 | operator.kcpKubeconfigSecretName | string | `"openbao-kubeconfig"` |  |
 | operator.openbaoAddress | string | `"http://openbao.openbao-provider.svc:8200"` |  |
 | operator.openbaoAuthMethod | string | `"kubernetes"` |  |

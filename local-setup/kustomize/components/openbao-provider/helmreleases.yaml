@@ -42,7 +42,7 @@ spec:
   chart:
     spec:
       chart: openbao-operator
-      version: "0.1.1"
+      version: "0.1.2"
       sourceRef:
         kind: HelmRepository
         name: openbao-local
@@ -57,6 +57,8 @@ spec:
     operator:
       openbaoAddress: "http://openbao.openbao-provider.svc:8200"
       openbaoDisplayUrl: "https://openbao.services.portal.localhost:8443"
+      defaultOIDCKeycloakBaseURL: "http://keycloak.platform-mesh-system.svc.cluster.local/keycloak"
+      defaultOIDCClientID: "openbao-poc-client"
       openbaoAuthMethod: "kubernetes"
       openbaoK8sRole: "openbao-operator"
       apiexportEndpointsliceName: "openbao.apeiro.dev"
