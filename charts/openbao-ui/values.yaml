@@ -1,0 +1,61 @@
+image:
+  registry: docker.io/library
+  repository: openbao-ui
+  tag: local
+  pullPolicy: Never
+
+imagePullSecrets: []
+replicaCount: 1
+
+resources:
+  requests: { cpu: 20m, memory: 32Mi }
+  limits: { cpu: 200m, memory: 128Mi }
+
+service:
+  type: ClusterIP
+  port: 80
+
+## Hostname the UI (and its pm-content.json) is served under.
+## The portal must be able to reach this host; cross-origin reads are enabled in nginx.
+ingress:
+  enabled: true
+  className: traefik
+  host: openbao-pm-ui.apeiro.dev
+  tls:
+    enabled: true
+    secretName: openbao-ui-tls
+  annotations: {}
+
+## Gateway API HTTPRoute, for local/in-cluster access via the platform-mesh
+## Gateway (e.g. Portal's k8sapi-gateway) instead of the public ingress host.
+## Disabled by default so it doesn't interfere with the ingress-based prod path.
+httpRoute:
+  enabled: false
+  ## Must match the port of the parentRef Gateway's referenced listener
+  ## (k8sapi-gateway's terminate-services listener terminates HTTPS on 8443).
+  port: 8443
+  hostnames:
+    - openbao-ui.services.portal.localhost
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: k8sapi-gateway
+      namespace: platform-mesh-system
+      sectionName: terminate-services
+
+## URL of the workspace-aware GraphQL gateway (flows into Luigi context as crdGatewayApiUrl).
+graphql:
+  url: "/api/kubernetes-graphql-gateway/root/graphql"
+
+accountNamespace: default
+
+## Luigi navigation ordering (Platform Mesh: Dashboard=100, Namespaces=110,
+## Workspace Resources=500, Marketplace=700, IAM=800). Group late so the portal
+## places this after existing categories.
+navigation:
+  accountOrder: 900
+  namespaceCategoryOrder: 900
+
+## Render fixture data instead of querying the gateway (handy for screenshots).
+fixtures:
+  enabled: false

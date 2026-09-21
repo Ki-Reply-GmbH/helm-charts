@@ -23,6 +23,7 @@ CUSTOM_LOCAL_COMPONENTS_CHART_PATHS=(
     "example-httpbin-operator:charts/example-httpbin-operator"
     "openbao-instance:charts/openbao-instance"
     "openbao-operator:charts/openbao-operator"
+    "openbao-ui:charts/openbao-ui"
     "extension-manager-operator:charts/extension-manager-operator"
     "iam-service:charts/iam-service"
     "iam-ui:charts/iam-ui"
